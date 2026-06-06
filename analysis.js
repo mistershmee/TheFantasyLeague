@@ -540,12 +540,34 @@ function runAnalysis(rawData) {
   // ── WEEKLY RECAPS ─────────────────────────────────────────────────────────
   const weeklyRecaps = {};
   for (const year of years) {
-    const reg = (seasons[year].matchups || []).filter(m => !m.is_playoffs && !m.is_consolation);
-    const wks = [...new Set(reg.map(m => m.week))].sort((a,b) => a-b);
+    const allMatchups = seasons[year].matchups || [];
+    const reg  = allMatchups.filter(m => !m.is_playoffs && !m.is_consolation);
+    const po   = allMatchups.filter(m =>  m.is_playoffs && !m.is_consolation);
+    const con  = allMatchups.filter(m =>  m.is_consolation);
+    const regWks = [...new Set(reg.map(m => m.week))].sort((a,b) => a-b);
+    const poWks  = [...new Set([...po,...con].map(m => m.week))].sort((a,b) => a-b);
+    const finalWeek = poWks.length ? Math.max(...poWks) : null;
+
     const seasonScores = {};
     weeklyRecaps[year] = [];
 
-    for (const wk of wks) {
+    // Helper to build diffs array from a set of matchup records
+    function buildDiffs(matches, bracket) {
+      return matches.map(m => {
+        const m1 = resolveManager(m.team1_manager, m.team1_name);
+        const m2 = resolveManager(m.team2_manager, m.team2_name);
+        const diff = Math.abs(m.team1_points - m.team2_points);
+        const winner = m.team1_points >= m.team2_points ? m1 : m2;
+        const loser  = m.team1_points >= m.team2_points ? m2 : m1;
+        const winPts = Math.max(m.team1_points, m.team2_points);
+        const losePts= Math.min(m.team1_points, m.team2_points);
+        return { m1, t1:m.team1_name, p1:m.team1_points, m2, t2:m.team2_name, p2:m.team2_points,
+                 diff, winner, loser, winPts, losePts, bracket };
+      });
+    }
+
+    // Regular season weeks
+    for (const wk of regWks) {
       const wkMatches = reg.filter(m => m.week === wk);
       if (!wkMatches.length) continue;
 
@@ -553,43 +575,26 @@ function runAnalysis(rawData) {
       for (const m of wkMatches) {
         const m1 = resolveManager(m.team1_manager, m.team1_name);
         const m2 = resolveManager(m.team2_manager, m.team2_name);
-        allScores.push({ mgr:m1, team:m.team1_name, pts:m.team1_points, won:m.team1_points>m.team2_points, opp:m2, opp_pts:m.team2_points });
-        allScores.push({ mgr:m2, team:m.team2_name, pts:m.team2_points, won:m.team2_points>m.team1_points, opp:m1, opp_pts:m.team1_points });
+        allScores.push({ mgr:m1, team:m.team1_name, pts:m.team1_points });
+        allScores.push({ mgr:m2, team:m.team2_name, pts:m.team2_points });
       }
-
-      // Update cumulative season scores
       for (const sc of allScores) {
         if (!seasonScores[sc.mgr]) seasonScores[sc.mgr] = [];
         seasonScores[sc.mgr].push(sc.pts);
       }
 
-      // High scorer
       const high = allScores.reduce((a,b) => a.pts > b.pts ? a : b);
-
-      // Matchup diffs for blowout/closest
-      const diffs = wkMatches.map(m => {
-        const m1 = resolveManager(m.team1_manager, m.team1_name);
-        const m2 = resolveManager(m.team2_manager, m.team2_name);
-        const diff = Math.abs(m.team1_points - m.team2_points);
-        const winner = m.team1_points > m.team2_points ? m1 : m2;
-        const loser  = m.team1_points > m.team2_points ? m2 : m1;
-        const winPts = Math.max(m.team1_points, m.team2_points);
-        const losePts= Math.min(m.team1_points, m.team2_points);
-        return { m1, t1:m.team1_name, p1:m.team1_points, m2, t2:m.team2_name, p2:m.team2_points, diff, winner, loser, winPts, losePts };
-      });
+      const diffs = buildDiffs(wkMatches, 'regular');
       const blowout = diffs.reduce((a,b) => a.diff > b.diff ? a : b);
       const closest = diffs.reduce((a,b) => a.diff < b.diff ? a : b);
-
-      // Manager of the week: highest score relative to their season avg
       const motw = allScores.map(sc => {
         const hist = seasonScores[sc.mgr] || [sc.pts];
         const avg = hist.reduce((a,b)=>a+b,0) / hist.length;
         return { ...sc, vsAvg: +(sc.pts - avg).toFixed(1) };
       }).reduce((a,b) => a.vsAvg > b.vsAvg ? a : b);
 
-      // Power rankings: sort by wins then cumulative pts through this week
       const cumPts = {}, cumWins = {};
-      for (const prevWk of wks.filter(w => w <= wk)) {
+      for (const prevWk of regWks.filter(w => w <= wk)) {
         for (const m of reg.filter(x => x.week === prevWk)) {
           const pm1 = resolveManager(m.team1_manager, m.team1_name);
           const pm2 = resolveManager(m.team2_manager, m.team2_name);
@@ -604,12 +609,44 @@ function runAnalysis(rawData) {
         .map(([mgr,pts]) => ({ mgr, pts:+pts.toFixed(1), wins:cumWins[mgr]||0 }));
 
       weeklyRecaps[year].push({
-        week: wk,
-        matchups: diffs,
-        highScorer: { mgr:high.mgr, team:high.team, pts:high.pts },
+        week: wk, playoffWeek: false, finalWeek,
+        matchups: diffs, highScorer: { mgr:high.mgr, team:high.team, pts:high.pts },
         blowout, closest,
         motw: { mgr:motw.mgr, team:motw.team, pts:motw.pts, vsAvg:motw.vsAvg },
         powerRankings: powerRank,
+      });
+    }
+
+    // Playoff weeks — include both championship and consolation brackets
+    for (const wk of poWks) {
+      const poMatches  = po.filter(m => m.week === wk);
+      const conMatches = con.filter(m => m.week === wk);
+      if (!poMatches.length && !conMatches.length) continue;
+
+      const champDiffs = buildDiffs(poMatches, 'championship');
+      const conDiffs   = buildDiffs(conMatches, 'consolation');
+      const allDiffs   = [...champDiffs, ...conDiffs];
+
+      // High scorer across all playoff games this week
+      const allScores = [];
+      for (const m of [...poMatches, ...conMatches]) {
+        const m1 = resolveManager(m.team1_manager, m.team1_name);
+        const m2 = resolveManager(m.team2_manager, m.team2_name);
+        allScores.push({ mgr:m1, team:m.team1_name, pts:m.team1_points });
+        allScores.push({ mgr:m2, team:m.team2_name, pts:m.team2_points });
+      }
+      const high    = allScores.reduce((a,b) => a.pts > b.pts ? a : b);
+      const blowout = allDiffs.length ? allDiffs.reduce((a,b) => a.diff > b.diff ? a : b) : null;
+      const closest = allDiffs.length ? allDiffs.reduce((a,b) => a.diff < b.diff ? a : b) : null;
+
+      weeklyRecaps[year].push({
+        week: wk, playoffWeek: true, finalWeek,
+        isFinal: wk === finalWeek,
+        matchups: allDiffs,
+        highScorer: { mgr:high.mgr, team:high.team, pts:high.pts },
+        blowout, closest,
+        motw: null,         // no MOTW for playoff weeks
+        powerRankings: [],  // no power rankings for playoff weeks
       });
     }
   }
