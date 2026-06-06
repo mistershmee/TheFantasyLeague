@@ -85,8 +85,9 @@
 
 ---
 
-### Matt 
-> **BrySons of Anarchy (2017) and Petersons of Anarchy (2016) are Matt, NOT Bryson.**  
+### Matt
+> ⚠️ **BrySons of Anarchy (2017) and Petersons of Anarchy (2016) are Matt, NOT Bryson.**  
+> API returns lowercase `matt` — display name is Matt.
 
 | Year | Team Name |
 |------|-----------|
@@ -101,9 +102,10 @@
 ---
 
 ### Taylor
+> API returns `T Rex` — display name is Taylor.
+
 | Year | Team Name |
 |------|-----------|
-| 2009 | *(not in league)* |
 | 2010 | Golden Tate Showers |
 | 2011 | CItron My Face |
 | 2012 | The Dude. |
@@ -115,6 +117,8 @@
 ---
 
 ### Chris B
+> API returns `Chris` — display name is Chris B to distinguish from Chris T.
+
 | Year | Team Name |
 |------|-----------|
 | 2009 | The Dirty Sanchez |
@@ -131,7 +135,6 @@
 
 | Year | Team Name |
 |------|-----------|
-| 2009–2010 | *(not in league)* |
 | 2011–2012 | Romosexuals |
 | 2013–2015 | Romophobic |
 | 2016 | ndamukong suh dude!! |
@@ -140,7 +143,6 @@
 | 2020 | The Spoiled |
 | 2021 | There's Tua Much Shit On Me |
 | 2022 | Stable of Stars |
-| 2023–2025 | *(not in league)* |
 
 ---
 
@@ -194,17 +196,20 @@
 ---
 
 ### Gary
-> ⚠️ **LAPORTA PARTY (2023) is Gary, NOT Garrett.**
+> ⚠️ **LAPORTA PARTY (2023) is Gary, NOT Garrett.**  
+> API returns `Garrett` — display name is Gary.
 
 | Year | Team Name |
 |------|-----------|
 | 2023 | LAPORTA PARTY |
 | 2024 | Çöôpèr's Pòõpēr's ẞçøøpërs |
 | 2025 | Egbuka's Brown Burrow |
+
 ---
 
 ### Murph
-> ⚠️ **Jerry had a lil Lamb (2021) is Murph, NOT Ryan or Josh.**
+> ⚠️ **Jerry had a lil Lamb (2021) is Murph, NOT Ryan or Josh.**  
+> API returns `Jeremy` — display name is Murph.
 
 | Year | Team Name |
 |------|-----------|
@@ -221,38 +226,37 @@
 
 | Team Name | Year | Notes |
 |-----------|------|-------|
-| Joe Montainya | 2013 | 6-7, finished 8th. Possibly Joseph under a different name? |
-| My Team is Terrible | 2012 | 3-9, finished 13th. One of the early-era managers. |
+| Joe Montainya | 2013 | 6-7, finished 8th. |
+| My Team is Terrible | 2012 | 3-9, finished 13th. |
 | Suck My C.Johnson | 2010 | Strong season — 10-3, finished 5th. |
-| ishyaCOWboy | 2010 | 4-9, finished 10th. Same 2010 league as above. |
+| ishyaCOWboy | 2010 | 4-9, finished 10th. |
 
 ---
 
 ## Season Participation Summary
 
-| Manager | First | Last | Seasons |
-|---------|-------|------|---------|
-| Chris T | 2009 | 2025 | 17 |
-| Ryan | 2009 | 2025 | 17 |
-| Nels | 2009 | 2025 | 17 |
-| Jack | 2009 | 2025 | 17 |
-| Josh | 2009 | 2025 | 17* |
-| Bryson | 2009 | 2025 | 17 |
-| matt | 2009 | 2025 | 17 |
-| Chris | 2009 | 2025 | 17 |
-| Mike | 2009 | 2025 | 15† |
-| T Rex | 2010 | 2025 | 14‡ |
-| Wes | 2011 | 2022 | 12§ |
-| Joseph | 2012 | 2017 | 6 |
-| Jeff | 2009 | 2013 | 5 |
-| Evan | 2016 | 2022 | 7 |
-| Travis | 2009 | 2010 | 2 |
-| JR | 2009 | 2009 | 1 |
-| Gary | 2023 | 2025 | 3 |
-| Jeremy | 2021 | 2025 | 4 |
-| Garrett | 2024 | 2025 | 2 |
+| Manager | API Name | First | Last | Seasons |
+|---------|----------|-------|------|---------|
+| Chris T | Chris T | 2009 | 2025 | 17 |
+| Ryan | Ryan | 2009 | 2025 | 17 |
+| Nels | Nels | 2009 | 2025 | 17 |
+| Jack | Jack | 2009 | 2025 | 17 |
+| Josh | Josh | 2009 | 2025 | 17* |
+| Bryson | Bryson | 2009 | 2025 | 17 |
+| Matt | matt | 2009 | 2025 | 17 |
+| Chris B | Chris | 2009 | 2025 | 17 |
+| Mike | Mike | 2009 | 2025 | 15† |
+| Taylor | T Rex | 2010 | 2025 | 14‡ |
+| Wes | Wes | 2011 | 2022 | 12§ |
+| Joseph | Joseph | 2012 | 2017 | 6 |
+| Evan | Evan | 2016 | 2022 | 7 |
+| Jeff | Jeff | 2009 | 2013 | 5 |
+| Travis | Travis | 2009 | 2010 | 2 |
+| JR | JR | 2009 | 2009 | 1 |
+| Gary | Garrett | 2023 | 2025 | 3 |
+| Murph | Jeremy | 2021 | 2025 | 4 |
 
 > \* Josh missed 2021  
 > † Mike missed 2016–2017  
-> ‡ T Rex missed 2009  
+> ‡ Taylor missed 2009  
 > § Wes missed 2009–2010 and 2023–2025

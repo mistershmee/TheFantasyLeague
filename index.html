@@ -721,7 +721,9 @@ let A; // analysis results
 let draftFormat = 'all', draftPos = 'all', evoPos = 'all', h2hMode = 'total';
 let mgrSort = { col: 'winPct', asc: false };
 let piSort  = { col: 'finalPI', asc: false };
-const CORE = ['Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','matt','T Rex','Chris','Wes'];
+const CORE = ['Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes'];
+const ALL_MGRS = ['Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes',
+                  'Joseph','Evan','Jeff','Travis','JR','Gary','Murph'];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const $  = id => document.getElementById(id);
@@ -840,7 +842,7 @@ function buildMgr() {
     `<th onclick="sortMgr('${h.k}')" class="${mgrSort.col===h.k?'sorted':''}">${h.label}<span class="arr">${mgrSort.col===h.k?(mgrSort.asc?'▲':'▼'):'⇅'}</span></th>`
   ).join('');
 
-  const rows = CORE.map(mgr => ({ name: mgr, ...A.managerStats[mgr] })).filter(r => r.seasons);
+  const rows = ALL_MGRS.map(mgr => ({ name: mgr, ...A.managerStats[mgr] })).filter(r => r && r.seasons);
   rows.sort((a,b) => {
     const va = a[mgrSort.col], vb = b[mgrSort.col];
     if (typeof va === 'string') return mgrSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -871,7 +873,7 @@ function sortMgr(col) {
 
 // ─── LUCK ─────────────────────────────────────────────────────────────────────
 function buildLuck() {
-  const data = CORE.map(mgr => {
+  const data = ALL_MGRS.map(mgr => {
     const s = A.luckCareer[mgr] || { actual: 0, expected: 0 };
     return { mgr, luck: +(s.actual - s.expected).toFixed(1), actual: s.actual, expected: +s.expected.toFixed(1) };
   }).sort((a,b) => b.luck - a.luck);
@@ -888,8 +890,8 @@ function buildLuck() {
     </div>`).join('');
 
   const sorted = [...A.luckSeasons].sort((a,b) => b.luck - a.luck);
-  const best = sorted.filter(s => CORE.includes(s.mgr)).slice(0, 10);
-  const worst = [...sorted].reverse().filter(s => CORE.includes(s.mgr)).slice(0, 10);
+  const best = sorted.filter(s => ALL_MGRS.includes(s.mgr)).slice(0, 10);
+  const worst = [...sorted].reverse().filter(s => ALL_MGRS.includes(s.mgr)).slice(0, 10);
 
   $('luck-best-tb').innerHTML = best.map(s => `<tr>
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.year}</td>
@@ -1112,8 +1114,8 @@ const PI_CAREER_HEADERS = [
 function buildPower() {
   // Season PI
   const sorted = [...A.seasonPI].sort((a,b) => b.pi - a.pi);
-  const top10 = sorted.filter(t => CORE.includes(t.mgr)).slice(0, 10);
-  const bot10 = [...sorted].reverse().filter(t => CORE.includes(t.mgr)).slice(0, 10);
+  const top10 = sorted.filter(t => ALL_MGRS.includes(t.mgr)).slice(0, 10);
+  const bot10 = [...sorted].reverse().filter(t => ALL_MGRS.includes(t.mgr)).slice(0, 10);
 
   const piRow = (t, color) => `
     <div class="pi-row">
@@ -1137,7 +1139,7 @@ function renderPICareer() {
 
   const rows = Object.entries(A.careerPI)
     .map(([m, s]) => ({ m, ...s }))
-    .filter(r => CORE.includes(r.m))
+    .filter(r => ALL_MGRS.includes(r.m))
     .sort((a,b) => {
       const va = a[piSort.col], vb = b[piSort.col];
       if (typeof va === 'string') return piSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -1175,7 +1177,7 @@ function getH2H(m1, m2, mode) {
 
 function buildH2H() {
   const s1 = $('h1'), s2 = $('h2');
-  CORE.forEach(m => {
+  ALL_MGRS.forEach(m => {
     [s1, s2].forEach(s => { const o = document.createElement('option'); o.value = m; o.textContent = m; s.appendChild(o); });
   });
   s2.value = 'Ryan';
@@ -1184,12 +1186,12 @@ function buildH2H() {
   updateH2H();
 
   // Matrix
-  const short = CORE.map(m => m.split(' ')[0]);
+  const short = ALL_MGRS.map(m => m.split(' ')[0]);
   $('mat-tbl').innerHTML = `
     <thead><tr><th></th>${short.map(m => `<th style="font-size:10px;text-align:center">${m}</th>`).join('')}</tr></thead>
-    <tbody>${CORE.map((m1, i) => `<tr>
+    <tbody>${ALL_MGRS.map((m1, i) => `<tr>
       <td style="font-weight:600;font-size:11px;color:var(--text2)">${mgrDot(m1)}${short[i]}</td>
-      ${CORE.map(m2 => {
+      ${ALL_MGRS.map(m2 => {
         if (m1 === m2) return '<td style="background:var(--bg3);text-align:center">—</td>';
         const r = getH2H(m1, m2, 'total');
         if (!r) return '<td style="font-size:10px;text-align:center;color:var(--text3)">?</td>';

@@ -29,14 +29,24 @@ const PI_WEIGHTS = { scoring: 0.85, consistency: 0.15 };
 const PI_CAREER_BONUS = { title: 2, playoff: 1 };
 
 const CORE_MANAGERS = [
-  'Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','matt','T Rex','Chris','Wes'
+  'Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes'
+];
+
+// All managers ever — used for tables that show full history
+const ALL_MANAGERS = [
+  'Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes',
+  'Joseph','Evan','Jeff','Travis','JR','Gary','Murph',
 ];
 
 const MGR_COLORS = {
   'Chris T': '#6C63FF', 'Ryan': '#FF6B6B', 'Nels': '#4ECDC4',
   'Mike': '#45B7D1',    'Jack': '#FFA07A', 'Josh': '#98D8C8',
-  'Bryson': '#F7DC6F',  'matt': '#BB8FCE', 'T Rex': '#85C1E9',
-  'Chris': '#F0B27A',   'Wes': '#A9DFBF',
+  'Bryson': '#F7DC6F',  'Matt': '#BB8FCE', 'Taylor': '#85C1E9',
+  'Chris B': '#F0B27A', 'Wes': '#A9DFBF',
+  // Past managers
+  'Joseph': '#EF9F27', 'Evan': '#D4537E', 'Jeff': '#888780',
+  'Travis': '#639922', 'JR': '#5DCAA5',   'Gary': '#B4B2A9',
+  'Murph': '#C47AFF',
 };
 
 // ─── TEAM → MANAGER MAPPING ────────────────────────────────────────────────
@@ -45,20 +55,29 @@ const MGR_COLORS = {
 
 let TEAM_TO_MANAGER = {};  // populated by loadManagers()
 
+// Maps API manager_field strings to display names (e.g. 'T Rex' → 'Taylor')
+let API_TO_DISPLAY = {};
+
 async function loadManagers() {
   try {
     const res = await fetch('managers.json');
     if (!res.ok) throw new Error('managers.json not found');
     const data = await res.json();
-    // Build flat team→manager lookup from the structured JSON
+
+    // Build API name → display name map
+    for (const [apiName, displayName] of Object.entries(data._api_name_map || {})) {
+      if (!apiName.startsWith('_')) API_TO_DISPLAY[apiName] = displayName;
+    }
+
+    // Build flat team name → display name map
     for (const mgr of data.managers) {
+      const displayName = mgr.name === 'Unknown' ? null : mgr.name;
+      if (!displayName) continue;
       for (const entry of mgr.teams) {
-        // Skip unresolved unknowns that share the 'Unknown' manager bucket
-        const mgrName = mgr.name === 'Unknown' ? null : mgr.name;
-        if (mgrName) TEAM_TO_MANAGER[entry.name] = mgrName;
+        TEAM_TO_MANAGER[entry.name] = displayName;
       }
     }
-    console.log(`managers.json loaded — ${Object.keys(TEAM_TO_MANAGER).length} team mappings`);
+    console.log(`managers.json loaded — ${Object.keys(TEAM_TO_MANAGER).length} team mappings, ${Object.keys(API_TO_DISPLAY).length} API name mappings`);
   } catch (err) {
     console.warn('Could not load managers.json, using inline fallback:', err.message);
     // Inline fallback — mirrors managers.json exactly
@@ -94,11 +113,21 @@ async function loadManagers() {
       '17-7 Suck it!':'Jeff','CraigersCrew':'Jeff','A Kolb Day in Hell':'Jeff',
       'SEC SPEEEEEEEED':'Jeff','Long Live Jerrrah':'Jeff',
     };
+    // Inline fallback for API name → display name
+    API_TO_DISPLAY = {
+      'Chris T':'Chris T','Ryan':'Ryan','Nels':'Nels','Mike':'Mike','Jack':'Jack',
+      'Josh':'Josh','Bryson':'Bryson','Wes':'Wes','Joseph':'Joseph','Evan':'Evan',
+      'Jeff':'Jeff','Travis':'Travis','JR':'JR',
+      'matt':'Matt','T Rex':'Taylor','Chris':'Chris B','Garrett':'Gary','Jeremy':'Murph',
+    };
   }
 }
 
 function resolveManager(managerField, teamName) {
-  if (managerField && managerField !== '--hidden--') return managerField;
+  if (managerField && managerField !== '--hidden--') {
+    // Translate API name to display name if mapping exists
+    return API_TO_DISPLAY[managerField] || managerField;
+  }
   return TEAM_TO_MANAGER[teamName] || null;
 }
 
@@ -386,7 +415,7 @@ function runAnalysis(rawData) {
 
   // Career PI with bonuses
   const careerPI = {};
-  for (const mgr of CORE_MANAGERS) {
+  for (const mgr of ALL_MANAGERS) {
     const mgr_seasons = seasonPI.filter(t => t.mgr === mgr);
     if (mgr_seasons.length < 3) continue;
     const avgPI = mgr_seasons.reduce((a, b) => a + b.pi, 0) / mgr_seasons.length;
@@ -408,7 +437,7 @@ function runAnalysis(rawData) {
   const avgVORByPos = {};
   const positions = ['all', 'QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'SKILL'];
   for (const pos of positions) {
-    avgVORByPos[pos] = CORE_MANAGERS.map(mgr => {
+    avgVORByPos[pos] = ALL_MANAGERS.map(mgr => {
       let vors;
       if (pos === 'all') vors = Object.values(mgrPosVOR[mgr] || {}).flat();
       else if (pos === 'SKILL') vors = [...(mgrPosVOR[mgr]?.RB||[]), ...(mgrPosVOR[mgr]?.WR||[]), ...(mgrPosVOR[mgr]?.TE||[])];
@@ -445,7 +474,7 @@ function runAnalysis(rawData) {
     }
   }
 
-  const tradeDiff = CORE_MANAGERS
+  const tradeDiff = ALL_MANAGERS
     .filter(mgr => tradeVOR[mgr].trades > 0)
     .map(mgr => ({
       m: mgr, trades: tradeVOR[mgr].trades,
@@ -477,7 +506,7 @@ function runAnalysis(rawData) {
     }
   }
 
-  const waiverCareer = CORE_MANAGERS.map(mgr => {
+  const waiverCareer = ALL_MANAGERS.map(mgr => {
     const byYear = waiverByMgrYear[mgr];
     const total = Object.values(byYear).reduce((a, b) => a + b, 0);
     const peakEntry = Object.entries(byYear).sort((a, b) => b[1] - a[1])[0] || ['—', 0];
