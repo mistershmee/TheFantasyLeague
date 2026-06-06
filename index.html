@@ -59,6 +59,7 @@
 .filter-row{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:1rem;padding:.75rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md)}
 .filter-label{font-size:11px;color:var(--color-text-secondary);margin-right:2px}
 .note{font-size:11px;color:var(--color-text-secondary);font-style:italic;margin-bottom:.75rem;padding:.5rem .75rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md);border-left:2px solid var(--color-border-secondary)}
+.vor-note{font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem;padding:.4rem .75rem;background:var(--color-background-secondary);border-radius:var(--border-radius-md)}
 </style>
 
 <div class="app">
@@ -162,11 +163,11 @@
     </div>
   </div>
   <div class="card">
-    <div class="st">All-time trade point differential by manager</div>
-    <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Total season points received minus given away across all trades. Positive = came out ahead.</p>
+    <div class="st">All-time trade value by manager (VOR-adjusted)</div>
+    <div class="vor-note">📊 VOR-adjusted: accounts for positional scarcity. A RB is worth more than a QB with the same raw points because fewer elite RBs are available. Net VOR = value received minus value given away across all trades.</div>
     <div style="overflow-x:auto">
       <table class="tc">
-        <thead><tr><th>Manager</th><th>Trades</th><th>Pts received</th><th>Pts given</th><th>Net differential</th></tr></thead>
+        <thead><tr><th>Manager</th><th>Trades</th><th>VOR received</th><th>VOR given</th><th>Net VOR</th></tr></thead>
         <tbody id="trade-diff-tb"></tbody>
       </table>
     </div>
@@ -175,6 +176,7 @@
 
 <!-- DRAFT -->
 <div id="pnl-draft" class="pnl">
+  <div class="vor-note" style="margin-bottom:1rem">📊 All draft metrics use <strong>VOR (Value Over Replacement)</strong> — how much a player scored above the last startable player at their position in a 12-team league (QB12, RB36, WR36, TE14, DEF12, K12). This prevents QBs from dominating rankings due to higher raw point totals.</div>
   <div class="filter-row">
     <span class="filter-label">Format:</span>
     <button class="fbtn on" onclick="setDraftFormat('all',this)">All</button>
@@ -192,31 +194,31 @@
     <button class="fbtn" onclick="setDraftPos('DEF',this)">DEF</button>
   </div>
   <div class="card" style="margin-bottom:1rem">
-    <div class="st">Avg draft value per manager</div>
-    <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Avg season pts per drafted player.</p>
+    <div class="st">Avg VOR per pick by manager</div>
+    <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Average value over replacement per drafted player. Higher = consistently better drafter at this position.</p>
     <div id="draft-avg-bars"></div>
   </div>
   <div class="two">
     <div class="card">
       <div class="st">Best individual picks all-time</div>
-      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Snake = VOE vs round avg · Auction = VOC vs cost</p>
-      <table class="tc"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pick</th><th>Pts</th><th>Value</th></tr></thead><tbody id="pick-best-tb"></tbody></table>
+      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Ranked by VOR. Snake shows VOE (vs round avg). Auction shows VOC (VOR vs cost).</p>
+      <table class="tc"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pick</th><th>Pts</th><th>VOR</th></tr></thead><tbody id="pick-best-tb"></tbody></table>
     </div>
     <div class="card">
       <div class="st">Worst individual picks all-time</div>
-      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Biggest busts relative to draft position or salary.</p>
-      <table class="tc"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pick</th><th>Pts</th><th>Value</th></tr></thead><tbody id="pick-worst-tb"></tbody></table>
+      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Biggest busts by VOR — players who scored far below their positional replacement level.</p>
+      <table class="tc"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pick</th><th>Pts</th><th>VOR</th></tr></thead><tbody id="pick-worst-tb"></tbody></table>
     </div>
   </div>
   <div class="two">
     <div class="card">
       <div class="st">Best drafts all-time</div>
-      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Era-adjusted. Top 5 picks shown per draft.</p>
+      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Era + position adjusted. Top 5 picks shown by VOR.</p>
       <div id="draft-best-list"></div>
     </div>
     <div class="card">
       <div class="st">Worst drafts all-time</div>
-      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Era-adjusted z-score vs league average.</p>
+      <p style="font-size:11px;color:var(--color-text-secondary);margin-bottom:.75rem">Era + position adjusted z-score vs league average.</p>
       <div id="draft-worst-list"></div>
     </div>
   </div>
@@ -321,159 +323,184 @@ const TRADE_YEARS=['2009','2010','2011','2012','2013','2014','2015','2016','2017
 const TRADE_TEAMS=[{t:"Dad Bod's Squad",n:59},{t:'Mitha Rodgas Neybhud',n:44},{t:'Balls deep',n:44},{t:'Fuuck Stan Kroenke',n:32},{t:'Dez-ed and Confused',n:29},{t:'scute without the e',n:25}];
 const TRADES_LOP=[{y:'2024',wm:'Ryan',wp:['Jonathan Taylor (247)','Jordan Love (277)','Terry McLaurin (200)'],wt:724,lm:'Chris T',lp:['Alvin Kamara (198)'],lt:198,diff:526},{y:'2010',wm:'Travis',wp:['Matt Forte (215)','D. McFadden (232)','C. Palmer (284)','Cowboys (138)'],wt:979,lm:'Jack',lp:['Randy Moss (64)','LeSean McCoy (222)','M. Vick (0)','Packers (177)'],lt:463,diff:516},{y:'2016',wm:'Jack',wp:['A. Rodgers (475)','Vikings (158)','T. Riddick (99)'],wt:813,lm:'Wes',lp:['I. Crowell (169)','J. Graham (130)'],lt:299,diff:514},{y:'2018',wm:'Nels',wp:['Deshaun Watson (396)'],wt:396,lm:'Josh',lp:['Quincy Enunwa (0)'],lt:0,diff:396},{y:'2024',wm:'Nels',wp:['Brock Purdy (320)','Travis Kelce (96)'],wt:416,lm:'Chris T',lp:['Raheem Mostert (44)'],lt:44,diff:372}];
 const TRADES_FAIR=[{y:'2023',wm:'Ryan',wp:['DeVonta Smith (146)','Bijan Robinson (188)'],wt:334,lm:'Chris T',lp:['Justin Jefferson (149)','James Cook (185)'],lt:334,diff:0},{y:'2016',wm:'T Rex',wp:['T.Y. Hilton (200)','Chris Hogan (92)'],wt:292,lm:'Josh',lp:['DeMarco Murray (251)','Charles Sims (37)'],lt:288,diff:4},{y:'2024',wm:'Chris',wp:['Cooper Kupp (116)','Nick Chubb (55)'],wt:171,lm:'Ryan',lp:["CeeDee Lamb (164)"],lt:164,diff:7},{y:'2016',wm:'Jack',wp:['J. Maclin (60)','LeSean McCoy (266)'],wt:326,lm:'Joe',lp:['Jordy Nelson (220)','D. Booker (98)'],lt:318,diff:8},{y:'2023',wm:'matt',wp:['JSN (81)','Rashee Rice (135)',"D'Andre Swift (157)"],wt:373,lm:'Chris T',lp:['Mike Evans (209)','Chris Olave (156)'],lt:365,diff:8}];
+// VOR-adjusted trade differential
 const TRADE_DIFF=[
-  {m:'Josh',  trades:14,recv:3841,given:2990,net:851},
-  {m:'Nels',  trades:13,recv:3998,given:3421,net:577},
-  {m:'Mike',  trades:5, recv:1285,given:869, net:416},
-  {m:'Bryson',trades:5, recv:1288,given:955, net:333},
-  {m:'Jack',  trades:17,recv:5411,given:5280,net:131},
-  {m:'Chris', trades:2, recv:448, given:402, net:46},
-  {m:'Wes',   trades:15,recv:3513,given:3781,net:-268},
-  {m:'Ryan',  trades:27,recv:6678,given:6913,net:-235},
-  {m:'matt',  trades:16,recv:3709,given:4179,net:-470},
-  {m:'T Rex', trades:12,recv:4043,given:4663,net:-620},
-  {m:'Chris T',trades:20,recv:6200,given:7017,net:-817},
+  {m:'Jack',  trades:17,recv:820,given:118,net:702},
+  {m:'Chris T',trades:20,recv:1939,given:1401,net:538},
+  {m:'Bryson',trades:5, recv:565,given:214,net:351},
+  {m:'matt',  trades:16,recv:880,given:826,net:54},
+  {m:'Chris', trades:1, recv:103,given:66, net:37},
+  {m:'Josh',  trades:10,recv:620,given:651,net:-31},
+  {m:'Nels',  trades:11,recv:844,given:983,net:-139},
+  {m:'Mike',  trades:5, recv:323,given:441,net:-118},
+  {m:'T Rex', trades:12,recv:788,given:1150,net:-362},
+  {m:'Wes',   trades:14,recv:250,given:847,net:-597},
+  {m:'Ryan',  trades:24,recv:1227,given:1990,net:-763},
 ];
 
-// Full picks data — 10 per position
-const ALL_PICKS_BEST=[
-  {y:'2018',p:'Patrick Mahomes',pos:'QB',m:'Josh',pick:'$2',pts:555,val:538,type:'auction'},
-  {y:'2020',p:'Josh Allen',pos:'QB',m:'matt',pick:'$1',pts:494,val:486,type:'auction'},
-  {y:'2024',p:'Baker Mayfield',pos:'QB',m:'Garrett',pick:'$1',pts:464,val:455,type:'auction'},
-  {y:'2020',p:'Aaron Rodgers',pos:'QB',m:'T Rex',pick:'$5',pts:491,val:452,type:'auction'},
-  {y:'2018',p:'Matt Ryan',pos:'QB',m:'Chris T',pick:'$2',pts:452,val:435,type:'auction'},
-  {y:'2016',p:'Matt Ryan',pos:'QB',m:'Wes',pick:'$1',pts:440,val:432,type:'auction'},
-  {y:'2018',p:'Ben Roethlisberger',pos:'QB',m:'matt',pick:'$1',pts:438,val:429,type:'auction'},
-  {y:'2024',p:'Joe Burrow',pos:'QB',m:'T Rex',pick:'$7',pts:481,val:420,type:'auction'},
-  {y:'2020',p:'Tom Brady',pos:'QB',m:'Ryan',pick:'$3',pts:442,val:419,type:'auction'},
-  {y:'2024',p:'Jared Goff',pos:'QB',m:'Unknown',pick:'$3',pts:415,val:389,type:'auction'},
-  {y:'2018',p:'James Conner',pos:'RB',m:'Chris T',pick:'$1',pts:233,val:224,type:'auction'},
-  {y:'2016',p:'LeGarrette Blount',pos:'RB',m:'Chris',pick:'$2',pts:234,val:219,type:'auction'},
-  {y:'2010',p:'Arian Foster',pos:'RB',m:'Josh',pick:'R4',pts:345,val:213,type:'snake'},
-  {y:'2016',p:'Jordan Howard',pos:'RB',m:'Ryan',pick:'$1',pts:217,val:209,type:'auction'},
-  {y:'2022',p:'Jamaal Williams',pos:'RB',m:'T Rex',pick:'$1',pts:215,val:208,type:'auction'},
-  {y:'2022',p:'Tony Pollard',pos:'RB',m:'Jack',pick:'$3',pts:214,val:192,type:'auction'},
-  {y:'2020',p:'David Montgomery',pos:'RB',m:'Chris T',pick:'$3',pts:209,val:186,type:'auction'},
-  {y:'2022',p:'Kenneth Walker III',pos:'RB',m:'T Rex',pick:'$1',pts:184,val:177,type:'auction'},
-  {y:'2024',p:'Chase Brown',pos:'RB',m:'Jack',pick:'$2',pts:193,val:175,type:'auction'},
-  {y:'2024',p:'Chuba Hubbard',pos:'RB',m:'matt',pick:'$4',pts:205,val:170,type:'auction'},
-  {y:'2020',p:'Stefon Diggs',pos:'WR',m:'Josh',pick:'$5',pts:221,val:182,type:'auction'},
-  {y:'2021',p:'Cooper Kupp',pos:'WR',m:'Mike',pick:'R4',pts:329,val:172,type:'snake'},
-  {y:'2018',p:'Robert Woods',pos:'WR',m:'Chris T',pick:'$1',pts:180,val:171,type:'auction'},
-  {y:'2024',p:'Brian Thomas Jr.',pos:'WR',m:'matt',pick:'$4',pts:204,val:169,type:'auction'},
-  {y:'2022',p:'DeVonta Smith',pos:'WR',m:'Jeremy',pick:'$1',pts:174,val:167,type:'auction'},
-  {y:'2024',p:'Courtland Sutton',pos:'WR',m:'Ryan',pick:'$1',pts:167,val:158,type:'auction'},
-  {y:'2021',p:'Deebo Samuel',pos:'WR',m:'Jack',pick:'R8',pts:270,val:154,type:'snake'},
-  {y:'2024',p:'Ladd McConkey',pos:'WR',m:'Mike',pick:'$1',pts:163,val:154,type:'auction'},
-  {y:'2020',p:'Marvin Jones Jr.',pos:'WR',m:'Unknown',pick:'$1',pts:156,val:148,type:'auction'},
-  {y:'2016',p:'Michael Thomas',pos:'WR',m:'Jack',pick:'$3',pts:169,val:146,type:'auction'},
-  {y:'2018',p:'George Kittle',pos:'TE',m:'Ryan',pick:'$1',pts:180,val:171,type:'auction'},
-  {y:'2020',p:'Darren Waller',pos:'TE',m:'Ryan',pick:'$4',pts:184,val:153,type:'auction'},
-  {y:'2018',p:'Jared Cook',pos:'TE',m:'Ryan',pick:'$1',pts:138,val:129,type:'auction'},
-  {y:'2024',p:'George Kittle',pos:'TE',m:'Ryan',pick:'$6',pts:168,val:115,type:'auction'},
-  {y:'2022',p:'T.J. Hockenson',pos:'TE',m:'Josh',pick:'$3',pts:130,val:108,type:'auction'},
-  {y:'2011',p:'Rob Gronkowski',pos:'TE',m:'Mike',pick:'R10',pts:253,val:106,type:'snake'},
-  {y:'2020',p:'Mike Gesicki',pos:'TE',m:'Unknown',pick:'$1',pts:105,val:97,type:'auction'},
-  {y:'2022',p:'Evan Engram',pos:'TE',m:'T Rex',pick:'$1',pts:103,val:96,type:'auction'},
-  {y:'2024',p:'Brock Bowers',pos:'TE',m:'matt',pick:'$6',pts:149,val:96,type:'auction'},
-  {y:'2020',p:'T.J. Hockenson',pos:'TE',m:'Ryan',pick:'$1',pts:99,val:91,type:'auction'},
-  {y:'2024',p:"Ka'imi Fairbairn",pos:'K',m:'matt',pick:'$1',pts:172,val:163,type:'auction'},
-  {y:'2024',p:'Brandon Aubrey',pos:'K',m:'Wes',pick:'$4',pts:192,val:157,type:'auction'},
-  {y:'2024',p:'Jason Sanders',pos:'K',m:'Nels',pick:'$1',pts:166,val:157,type:'auction'},
-  {y:'2022',p:'Daniel Carlson',pos:'K',m:'Wes',pick:'$1',pts:162,val:155,type:'auction'},
-  {y:'2022',p:'Justin Tucker',pos:'K',m:'matt',pick:'$2',pts:164,val:149,type:'auction'},
-  {y:'2018',p:'Wil Lutz',pos:'K',m:'Wes',pick:'$1',pts:151,val:142,type:'auction'},
-  {y:'2022',p:'Nick Folk',pos:'K',m:'Jeremy',pick:'$1',pts:146,val:139,type:'auction'},
-  {y:'2018',p:'Harrison Butker',pos:'K',m:'Unknown',pick:'$1',pts:147,val:138,type:'auction'},
-  {y:'2024',p:'Tyler Bass',pos:'K',m:'T Rex',pick:'$1',pts:146,val:137,type:'auction'},
-  {y:'2018',p:'Mason Crosby',pos:'K',m:'Ryan',pick:'$1',pts:145,val:136,type:'auction'},
-  {y:'2018',p:'Bears',pos:'DEF',m:'Chris T',pick:'$1',pts:187,val:178,type:'auction'},
-  {y:'2022',p:'Patriots',pos:'DEF',m:'Wes',pick:'$1',pts:180,val:173,type:'auction'},
-  {y:'2016',p:'Chiefs',pos:'DEF',m:'matt',pick:'$1',pts:164,val:156,type:'auction'},
-  {y:'2022',p:'Cowboys',pos:'DEF',m:'Mike',pick:'$2',pts:170,val:155,type:'auction'},
-  {y:'2024',p:'Vikings',pos:'DEF',m:'Wes',pick:'$1',pts:162,val:153,type:'auction'},
-  {y:'2016',p:'Vikings',pos:'DEF',m:'Wes',pick:'$1',pts:158,val:150,type:'auction'},
-  {y:'2022',p:'Eagles',pos:'DEF',m:'Josh',pick:'$1',pts:154,val:147,type:'auction'},
-  {y:'2020',p:'Rams',pos:'DEF',m:'Unknown',pick:'$1',pts:151,val:143,type:'auction'},
-  {y:'2022',p:'49ers',pos:'DEF',m:'Wes',pick:'$3',pts:164,val:142,type:'auction'},
-  {y:'2016',p:'Cardinals',pos:'DEF',m:'Joe',pick:'$1',pts:148,val:140,type:'auction'},
-];
-const ALL_PICKS_WORST=[
-  {y:'2009',p:'Chad Pennington',pos:'QB',m:'Chris',pick:'R10',pts:14,val:-167,type:'snake'},
-  {y:'2023',p:'Aaron Rodgers',pos:'QB',m:'Josh',pick:'R8',pts:0,val:-148,type:'snake'},
-  {y:'2021',p:'Ryan Fitzpatrick',pos:'QB',m:'Nels',pick:'R12',pts:0,val:-142,type:'snake'},
-  {y:'2011',p:'Peyton Manning',pos:'QB',m:'T Rex',pick:'R4',pts:0,val:-131,type:'snake'},
-  {y:'2017',p:'Andrew Luck',pos:'QB',m:'Ryan',pick:'R6',pts:0,val:-129,type:'snake'},
-  {y:'2015',p:'Tony Romo',pos:'QB',m:'Josh',pick:'R6',pts:54,val:-98,type:'snake'},
-  {y:'2010',p:'Tony Romo',pos:'QB',m:'Chris T',pick:'R2',pts:127,val:-82,type:'snake'},
-  {y:'2013',p:'Vince Young',pos:'QB',m:'Jack',pick:'R15',pts:0,val:-74,type:'snake'},
-  {y:'2023',p:'Anthony Richardson',pos:'QB',m:'Mike',pick:'R8',pts:75,val:-73,type:'snake'},
-  {y:'2020',p:'Dak Prescott',pos:'QB',m:'Josh',pick:'$30',pts:163,val:-68,type:'auction'},
-  {y:'2020',p:'Saquon Barkley',pos:'RB',m:'Unknown',pick:'$82',pts:8,val:-624,type:'auction'},
-  {y:'2018',p:"Le'Veon Bell",pos:'RB',m:'Unknown',pick:'$72',pts:0,val:-619,type:'auction'},
-  {y:'2024',p:'C. McCaffrey',pos:'RB',m:'T Rex',pick:'$71',pts:28,val:-595,type:'auction'},
-  {y:'2020',p:'C. McCaffrey',pos:'RB',m:'Jeremy',pick:'$82',pts:69,val:-563,type:'auction'},
-  {y:'2022',p:'Jonathan Taylor',pos:'RB',m:'Jeremy',pick:'$84',pts:125,val:-498,type:'auction'},
-  {y:'2016',p:'Adrian Peterson',pos:'RB',m:'Wes',pick:'$61',pts:4,val:-455,type:'auction'},
-  {y:'2024',p:'Breece Hall',pos:'RB',m:'Mike',pick:'$69',pts:179,val:-427,type:'auction'},
-  {y:'2018',p:'Leonard Fournette',pos:'RB',m:'Chris T',pick:'$57',pts:91,val:-399,type:'auction'},
-  {y:'2020',p:'Ezekiel Elliott',pos:'RB',m:'Wes',pick:'$73',pts:167,val:-396,type:'auction'},
-  {y:'2020',p:'Joe Mixon',pos:'RB',m:'matt',pick:'$58',pts:77,val:-370,type:'auction'},
-  {y:'2024',p:'Tyreek Hill',pos:'WR',m:'Wes',pick:'$70',pts:140,val:-474,type:'auction'},
-  {y:'2024',p:'CeeDee Lamb',pos:'WR',m:'Wes',pick:'$72',pts:164,val:-468,type:'auction'},
-  {y:'2020',p:'Michael Thomas',pos:'WR',m:'Jeremy',pick:'$57',pts:49,val:-390,type:'auction'},
-  {y:'2024',p:'Amon-Ra St. Brown',pos:'WR',m:'Mike',pick:'$62',pts:213,val:-331,type:'auction'},
-  {y:'2022',p:'Cooper Kupp',pos:'WR',m:'Ryan',pick:'$62',pts:143,val:-317,type:'auction'},
-  {y:'2016',p:'DeAndre Hopkins',pos:'WR',m:'Chris',pick:'$57',pts:120,val:-309,type:'auction'},
-  {y:'2024',p:'Justin Jefferson',pos:'WR',m:'Unknown',pick:'$61',pts:226,val:-309,type:'auction'},
-  {y:'2024',p:'Garrett Wilson',pos:'WR',m:'Jack',pick:'$53',pts:161,val:-304,type:'auction'},
-  {y:'2018',p:'Antonio Brown',pos:'WR',m:'Ryan',pick:'$62',pts:233,val:-300,type:'auction'},
-  {y:'2016',p:'Antonio Brown',pos:'WR',m:'Chris T',pick:'$67',pts:208,val:-297,type:'auction'},
-  {y:'2016',p:'Rob Gronkowski',pos:'TE',m:'Josh',pick:'$52',pts:81,val:-311,type:'auction'},
-  {y:'2018',p:'Rob Gronkowski',pos:'TE',m:'matt',pick:'$40',pts:87,val:-257,type:'auction'},
-  {y:'2020',p:'George Kittle',pos:'TE',m:'Nels',pick:'$41',pts:79,val:-237,type:'auction'},
-  {y:'2022',p:'Mark Andrews',pos:'TE',m:'T Rex',pick:'$39',pts:123,val:-166,type:'auction'},
-  {y:'2024',p:'Travis Kelce',pos:'TE',m:'Chris T',pick:'$29',pts:96,val:-159,type:'auction'},
-  {y:'2022',p:'Kyle Pitts',pos:'TE',m:'T Rex',pick:'$25',pts:41,val:-144,type:'auction'},
-  {y:'2020',p:'Travis Kelce',pos:'TE',m:'Wes',pick:'$47',pts:224,val:-138,type:'auction'},
-  {y:'2020',p:'Zach Ertz',pos:'TE',m:'T Rex',pick:'$21',pts:36,val:-126,type:'auction'},
-  {y:'2021',p:'Irv Smith Jr.',pos:'TE',m:'Evan',pick:'R14',pts:0,val:-123,type:'snake'},
-  {y:'2012',p:'Jermichael Finley',pos:'TE',m:'Jack',pick:'R4',pts:72,val:-118,type:'snake'},
-  {y:'2011',p:'Nate Kaeding',pos:'K',m:'Chris',pick:'R9',pts:0,val:-130,type:'snake'},
-  {y:'2012',p:'Neil Rackers',pos:'K',m:'T Rex',pick:'R11',pts:0,val:-117,type:'snake'},
-  {y:'2011',p:'David Buehler',pos:'K',m:'Wes',pick:'R15',pts:0,val:-110,type:'snake'},
-  {y:'2021',p:'Wil Lutz',pos:'K',m:'Ryan',pick:'R15',pts:0,val:-88,type:'snake'},
-  {y:'2017',p:'Sebastian Janikowski',pos:'K',m:'Josh',pick:'R14',pts:0,val:-88,type:'snake'},
-  {y:'2020',p:'Greg Zuerlein',pos:'K',m:'Josh',pick:'$30',pts:153,val:-78,type:'auction'},
-  {y:'2011',p:'Garrett Hartley',pos:'K',m:'matt',pick:'R13',pts:0,val:-72,type:'snake'},
-  {y:'2009',p:'Garrett Hartley',pos:'K',m:'Josh',pick:'R14',pts:37,val:-65,type:'snake'},
-  {y:'2010',p:'Stephen Gostkowski',pos:'K',m:'Unknown',pick:'R9',pts:58,val:-62,type:'snake'},
-  {y:'2012',p:'John Kasay',pos:'K',m:'Josh',pick:'R13',pts:0,val:-58,type:'snake'},
-  {y:'2023',p:'Commanders',pos:'DEF',m:'Jack',pick:'R14',pts:58,val:-67,type:'snake'},
-  {y:'2012',p:'Chiefs',pos:'DEF',m:'Chris T',pick:'R10',pts:56,val:-47,type:'snake'},
-  {y:'2015',p:'Dolphins',pos:'DEF',m:'Josh',pick:'R14',pts:96,val:-47,type:'snake'},
-  {y:'2009',p:'Chargers',pos:'DEF',m:'Chris T',pick:'R10',pts:135,val:-46,type:'snake'},
-  {y:'2012',p:'Eagles',pos:'DEF',m:'T Rex',pick:'R9',pts:61,val:-46,type:'snake'},
-  {y:'2012',p:'Lions',pos:'DEF',m:'Unknown',pick:'R8',pts:69,val:-45,type:'snake'},
-  {y:'2015',p:'Ravens',pos:'DEF',m:'T Rex',pick:'R14',pts:103,val:-40,type:'snake'},
-  {y:'2017',p:'Giants',pos:'DEF',m:'Chris',pick:'R13',pts:89,val:-40,type:'snake'},
-  {y:'2025',p:'49ers',pos:'DEF',m:'Jeremy',pick:'R14',pts:78,val:-38,type:'snake'},
-  {y:'2015',p:'Bills',pos:'DEF',m:'Mike',pick:'R10',pts:98,val:-34,type:'snake'},
-];
-
+// VOR-adjusted avg draft value per manager per position
 const DRAFT_AVG_BY_POS={
-  all:   [{n:'Ryan',avg:142.4},{n:'Mike',avg:141.2},{n:'Chris T',avg:139.4},{n:'T Rex',avg:137.6},{n:'Josh',avg:134.6},{n:'Chris',avg:134.2},{n:'matt',avg:133.1},{n:'Jack',avg:132.4},{n:'Nels',avg:132.3},{n:'Bryson',avg:129.2},{n:'Wes',avg:129.1}],
-  QB:    [{n:'Josh',avg:312.3},{n:'Chris T',avg:303.5},{n:'Jack',avg:297.8},{n:'Wes',avg:293.9},{n:'Ryan',avg:293.0},{n:'T Rex',avg:287.2},{n:'matt',avg:287.1},{n:'Mike',avg:281.9},{n:'Chris',avg:267.4},{n:'Nels',avg:249.5},{n:'Bryson',avg:258.1}],
-  RB:    [{n:'Chris T',avg:130.8},{n:'Nels',avg:123.0},{n:'Ryan',avg:127.2},{n:'Bryson',avg:121.9},{n:'Mike',avg:121.1},{n:'T Rex',avg:116.4},{n:'Jack',avg:113.3},{n:'Chris',avg:110.9},{n:'Wes',avg:103.5},{n:'matt',avg:101.7},{n:'Josh',avg:100.9}],
-  WR:    [{n:'Chris',avg:124.8},{n:'Ryan',avg:122.3},{n:'Josh',avg:120.2},{n:'matt',avg:120.0},{n:'Mike',avg:116.9},{n:'T Rex',avg:113.2},{n:'Nels',avg:107.9},{n:'Jack',avg:107.7},{n:'Wes',avg:106.0},{n:'Bryson',avg:103.2},{n:'Chris T',avg:102.1}],
-  TE:    [{n:'Bryson',avg:106.4},{n:'Nels',avg:104.3},{n:'Ryan',avg:102.5},{n:'Wes',avg:92.5},{n:'matt',avg:90.1},{n:'Jack',avg:86.7},{n:'Josh',avg:83.8},{n:'T Rex',avg:82.6},{n:'Mike',avg:82.2},{n:'Chris T',avg:76.3},{n:'Chris',avg:75.0}],
-  SKILL: [{n:'Ryan',avg:117.3},{n:'Nels',avg:111.7},{n:'Chris T',avg:109.7},{n:'Bryson',avg:110.4},{n:'Mike',avg:106.7},{n:'T Rex',avg:104.1},{n:'Chris',avg:103.6},{n:'Jack',avg:102.6},{n:'Josh',avg:101.7},{n:'Wes',avg:99.3},{n:'matt',avg:97.6}],
-  K:     [{n:'Bryson',avg:134.0},{n:'Wes',avg:131.2},{n:'matt',avg:127.4},{n:'Ryan',avg:126.8},{n:'Chris T',avg:124.9},{n:'Nels',avg:122.3},{n:'Mike',avg:119.7},{n:'Jack',avg:118.2},{n:'T Rex',avg:116.9},{n:'Josh',avg:115.4},{n:'Chris',avg:113.2}],
-  DEF:   [{n:'Josh',avg:109.2},{n:'Chris T',avg:107.8},{n:'Nels',avg:105.6},{n:'Mike',avg:104.3},{n:'Ryan',avg:102.1},{n:'Bryson',avg:101.7},{n:'T Rex',avg:99.8},{n:'Jack',avg:98.4},{n:'matt',avg:97.2},{n:'Chris',avg:95.9},{n:'Wes',avg:93.1}],
+  all:   [{n:'Ryan',avg:32.5},{n:'Chris T',avg:26.9},{n:'Mike',avg:25.5},{n:'Nels',avg:25.5},{n:'Josh',avg:24.1},{n:'Jack',avg:23.9},{n:'Bryson',avg:23.2},{n:'Chris',avg:22.8},{n:'matt',avg:22.7},{n:'T Rex',avg:22.4},{n:'Wes',avg:19.9}],
+  QB:    [{n:'Josh',avg:14.3},{n:'Chris T',avg:4.9},{n:'Jack',avg:2.0},{n:'Ryan',avg:-3.0},{n:'Wes',avg:-7.1},{n:'matt',avg:-9.5},{n:'T Rex',avg:-10.5},{n:'Mike',avg:-16.2},{n:'Chris',avg:-23.2},{n:'Bryson',avg:-29.7},{n:'Nels',avg:-46.1}],
+  RB:    [{n:'Chris T',avg:52.7},{n:'Ryan',avg:48.3},{n:'Nels',avg:44.1},{n:'Mike',avg:43.1},{n:'Bryson',avg:42.4},{n:'T Rex',avg:38.6},{n:'Jack',avg:35.1},{n:'Chris',avg:32.3},{n:'Wes',avg:24.4},{n:'matt',avg:23.1},{n:'Josh',avg:23.0}],
+  WR:    [{n:'Chris',avg:33.2},{n:'Ryan',avg:28.4},{n:'Josh',avg:26.5},{n:'matt',avg:26.2},{n:'Mike',avg:21.6},{n:'T Rex',avg:18.8},{n:'Nels',avg:14.4},{n:'Jack',avg:13.9},{n:'Wes',avg:12.1},{n:'Bryson',avg:12.0},{n:'Chris T',avg:8.3}],
+  TE:    [{n:'Nels',avg:44.8},{n:'Bryson',avg:43.7},{n:'Ryan',avg:42.8},{n:'Wes',avg:31.5},{n:'matt',avg:31.0},{n:'Jack',avg:24.8},{n:'Josh',avg:21.6},{n:'T Rex',avg:21.0},{n:'Mike',avg:20.5},{n:'Chris T',avg:15.4},{n:'Chris',avg:11.8}],
+  SKILL: [{n:'Ryan',avg:39.8},{n:'Chris T',avg:38.8},{n:'Nels',avg:34.4},{n:'Mike',avg:35.3},{n:'Bryson',avg:32.8},{n:'T Rex',avg:26.1},{n:'Jack',avg:24.6},{n:'Chris',avg:25.8},{n:'Wes',avg:22.7},{n:'matt',avg:26.8},{n:'Josh',avg:23.7}],
+  K:     [{n:'Nels',avg:74.0},{n:'Jack',avg:58.5},{n:'Mike',avg:56.0},{n:'Bryson',avg:52.4},{n:'matt',avg:51.7},{n:'Ryan',avg:50.4},{n:'Chris',avg:48.5},{n:'Wes',avg:48.1},{n:'Chris T',avg:40.8},{n:'Josh',avg:34.7},{n:'T Rex',avg:30.3}],
+  DEF:   [{n:'Nels',avg:35.1},{n:'Chris T',avg:32.1},{n:'Mike',avg:27.5},{n:'Wes',avg:27.4},{n:'Bryson',avg:27.2},{n:'Josh',avg:26.6},{n:'matt',avg:25.9},{n:'Jack',avg:24.4},{n:'T Rex',avg:22.3},{n:'Ryan',avg:21.9},{n:'Chris',avg:19.1}],
 };
 
-const DRAFT_BEST_DATA=[{y:'2009',m:'Nels',team:"Seattle Scgreat's",type:'snake',pts:2399,z:2.29,picks:[{n:'Chris Johnson',r:'R1',pts:381,voe:169},{n:'Kurt Warner',r:'R4',pts:282,voe:113},{n:'Steve Smith',r:'R15',pts:170,voe:106},{n:'Kyle Orton',r:'R10',pts:258,voe:77},{n:'Joseph Addai',r:'R5',pts:184,voe:60}]},{y:'2011',m:'Mike',team:'Paradox',type:'snake',pts:2561,z:1.96,picks:[{n:'Matthew Stafford',r:'R9',pts:455,voe:325},{n:'Matt Ryan',r:'R5',pts:348,voe:223},{n:'Rob Gronkowski',r:'R10',pts:253,voe:106},{n:'Fred Jackson',r:'R8',pts:186,voe:69},{n:'Dan Bailey',r:'R15',pts:149,voe:39}]},{y:'2012',m:'Josh',team:'Off Constantly',type:'snake',pts:2416,z:1.92,picks:[{n:'Andrew Luck',r:'R9',pts:340,voe:234},{n:'Tom Brady',r:'R1',pts:437,voe:175},{n:'Marshawn Lynch',r:'R2',pts:274,voe:87},{n:'Seahawks',r:'R10',pts:186,voe:83},{n:'Matt Bryant',r:'R15',pts:161,voe:70}]},{y:'2023',m:'Ryan',team:'Balls deep',type:'snake',pts:2553,z:1.89,picks:[{n:'Dak Prescott',r:'R8',pts:425,voe:277},{n:'Jalen Hurts',r:'R2',pts:408,voe:193},{n:'Harrison Butker',r:'R12',pts:154,voe:66},{n:'Michael Pittman Jr.',r:'R9',pts:145,voe:44},{n:'Alvin Kamara',r:'R7',pts:147,voe:38}]},{y:'2018',m:'Josh',team:"Jerry's Fairies",type:'auction',pts:2868,z:2.14,picks:[{n:'Patrick Mahomes',r:'$2',pts:555,voc:538},{n:'Matt Ryan',r:'$2',pts:452,voc:435},{n:'Ben Roethlisberger',r:'$1',pts:438,voc:429},{n:'Deshaun Watson',r:'$9',pts:396,voc:319},{n:'Philip Rivers',r:'$6',pts:367,voc:315}]},{y:'2024',m:'Ryan',team:'Balls deep',type:'auction',pts:2611,z:1.91,picks:[{n:'Bo Nix',r:'$1',pts:367,voc:358},{n:'Kyler Murray',r:'$12',pts:332,voc:227},{n:'Courtland Sutton',r:'$1',pts:167,voc:158},{n:'Saquon Barkley',r:'$62',pts:352,voc:97},{n:'Jaylen Waddle',r:'$11',pts:149,voc:40}]},{y:'2020',m:'matt',team:'scute without the e',type:'auction',pts:2378,z:1.81,picks:[{n:'Josh Allen',r:'$1',pts:494,voc:486},{n:'Deshaun Watson',r:'$21',pts:468,voc:306},{n:'Matt Ryan',r:'$2',pts:349,voc:334},{n:'Matthew Stafford',r:'$2',pts:315,voc:300},{n:'Steelers',r:'$2',pts:148,voc:133}]},{y:'2025',m:'Chris',team:'Bijan Mustard',type:'snake',pts:2452,z:1.79,picks:[{n:'Trevor Lawrence',r:'R12',pts:384,voe:283},{n:'Josh Allen',r:'R3',pts:414,voe:241},{n:'Chris Olave',r:'R9',pts:172,voe:81},{n:'Brandon Aubrey',r:'R10',pts:187,voe:64},{n:'Zay Flowers',r:'R6',pts:157,voe:38}]},{y:'2010',m:'Jack',team:'Mitha Rodgas Neybhud',type:'snake',pts:2172,z:1.78,picks:[{n:'Aaron Rodgers',r:'R1',pts:373,voe:188},{n:'Carson Palmer',r:'R8',pts:284,voe:136},{n:'Darren McFadden',r:'R11',pts:232,voe:115},{n:'Matt Forte',r:'R5',pts:215,voe:80},{n:'S. Janikowski',r:'R13',pts:158,voe:41}]},{y:'2014',m:'Nels',team:"Nelson's Man-Dillas",type:'auction',pts:2482,z:1.71,picks:[{n:'Andrew Luck',r:'$28',pts:404,voc:219},{n:'Ben Roethlisberger',r:'$14',pts:324,voc:139},{n:'Antonio Brown',r:'$42',pts:321,voc:97},{n:'Jay Ajayi',r:'$4',pts:193,voc:103},{n:'Randall Cobb',r:'$19',pts:208,voc:68}]}];
-const DRAFT_WORST_DATA=[{y:'2022',m:'matt',team:'scute without the e',type:'auction',pts:1579,z:-2.09,picks:[{n:'Justin Tucker',r:'$2',pts:164,voc:149},{n:'C. Patterson',r:'$2',pts:135,voc:120},{n:'Bills',r:'$3',pts:136,voc:114},{n:'Cole Kmet',r:'$2',pts:90,voc:75},{n:'M. Valdes-Scantling',r:'$1',pts:79,voc:72}]},{y:'2013',m:'Jeff',team:'Long Live Jerrrah',type:'snake',pts:1697,z:-2.07,picks:[{n:'Tom Brady',r:'R2',pts:321,voe:96},{n:'Knowshon Moreno',r:'R10',pts:224,voe:70},{n:'Marshawn Lynch',r:'R1',pts:236,voe:39},{n:'Pierre Garcon',r:'R5',pts:174,voe:36},{n:'Packers',r:'R11',pts:108,voe:23}]},{y:'2024',m:'Bryson',team:'Fuuck Stan Kroenke',type:'auction',pts:1757,z:-1.78,picks:[{n:'Davante Adams',r:'$11',pts:120,voc:11},{n:'Josh Allen',r:'$1',pts:414,voc:-3},{n:'C. McCaffrey',r:'$65',pts:178,voc:-49},{n:'CeeDee Lamb',r:'$44',pts:164,voc:-65},{n:'Justin Jefferson',r:'$31',pts:106,voc:-69}]},{y:'2021',m:'Nels',team:"Nelson's Man-Dillas",type:'snake',pts:1511,z:-1.77,picks:[{n:'Matt Gay',r:'R14',pts:159,voe:36},{n:'Buccaneers',r:'R13',pts:141,voe:28},{n:'Tyler Lockett',r:'R4',pts:181,voe:24},{n:'Keenan Allen',r:'R3',pts:161,voe:0},{n:'Derrick Henry',r:'R1',pts:191,voe:-7}]},{y:'2017',m:'Ryan',team:'Balls deep',type:'snake',pts:1481,z:-1.74,picks:[{n:'Eli Manning',r:'R12',pts:228,voe:100},{n:'DeAndre Hopkins',r:'R3',pts:227,voe:76},{n:'Steelers',r:'R15',pts:139,voe:60},{n:'Stephen Hauschka',r:'R14',pts:137,voe:49},{n:'Jack Doyle',r:'R11',pts:86,voe:11}]},{y:'2012',m:'T Rex',team:'The Dude.',type:'snake',pts:1478,z:-1.71,picks:[{n:'Matt Ryan',r:'R5',pts:390,voe:253},{n:'Heath Miller',r:'R13',pts:125,voe:67},{n:'Roddy White',r:'R2',pts:197,voe:10},{n:'Percy Harvin',r:'R6',pts:111,voe:-15},{n:'Darren Sproles',r:'R3',pts:139,voe:-18}]},{y:'2016',m:'Nels',team:"Nelson's Man-Dillas",type:'auction',pts:1516,z:-1.69,picks:[{n:'Odell Beckham Jr.',r:'$50',pts:115,voc:-57},{n:'Devonta Freeman',r:'$35',pts:71,voc:-58},{n:'Todd Gurley',r:'$55',pts:94,voc:-79},{n:'Larry Fitzgerald',r:'$25',pts:72,voc:-85},{n:'Dez Bryant',r:'$50',pts:37,voc:-110}]},{y:'2014',m:'Bryson',team:'Im the real Greenie',type:'auction',pts:1668,z:-1.68,picks:[{n:'B. Marshall',r:'$20',pts:178,voc:58},{n:'T. Hilton',r:'$15',pts:158,voc:28},{n:'Alfred Morris',r:'$30',pts:83,voc:-67},{n:'R. Jennings',r:'$30',pts:58,voc:-92},{n:'Ben Tate',r:'$18',pts:16,voc:-101}]},{y:'2020',m:'Chris',team:'Dez-ed and Confused',type:'auction',pts:1666,z:-1.68,picks:[{n:'T. Lockett',r:'$20',pts:203,voc:83},{n:'Cooper Kupp',r:'$22',pts:141,voc:0},{n:'S. Barkley',r:'$75',pts:82,voc:-188},{n:'A. Kamara',r:'$60',pts:70,voc:-180},{n:'B. Cooks',r:'$15',pts:126,voc:-14}]},{y:'2010',m:'Chris',team:"TD's N' Beer",type:'snake',pts:1447,z:-1.66,picks:[{n:'Chad Henne',r:'R11',pts:192,voe:75},{n:'Cardinals',r:'R15',pts:150,voe:57},{n:'Thomas Jones',r:'R5',pts:134,voe:-1},{n:'Reggie Wayne',r:'R1',pts:178,voe:-6},{n:'Ryan Grant',r:'R2',pts:4,voe:-205}]}];
+// VOR-based best/worst individual picks (10 per position)
+const ALL_PICKS_BEST=[
+  {y:'2011',p:'Drew Brees',pos:'QB',m:'Chris T',pick:'R2',pts:537,vor:267,type:'snake'},
+  {y:'2013',p:'Peyton Manning',pos:'QB',m:'T Rex',pick:'R2',pts:576,vor:255,type:'snake'},
+  {y:'2011',p:'Aaron Rodgers',pos:'QB',m:'Josh',pick:'R1',pts:515,vor:245,type:'snake'},
+  {y:'2022',p:'Patrick Mahomes',pos:'QB',m:'Chris T',pick:'$24',pts:531,vor:238,type:'auction'},
+  {y:'2011',p:'Tom Brady',pos:'QB',m:'Ryan',pick:'R1',pts:485,vor:215,type:'snake'},
+  {y:'2018',p:'Patrick Mahomes',pos:'QB',m:'Josh',pick:'$2',pts:555,vor:201,type:'auction'},
+  {y:'2022',p:'Josh Allen',pos:'QB',m:'Mike',pick:'$39',pts:490,vor:197,type:'auction'},
+  {y:'2021',p:'Tom Brady',pos:'QB',m:'Ryan',pick:'R6',pts:496,vor:195,type:'snake'},
+  {y:'2020',p:'Josh Allen',pos:'QB',m:'matt',pick:'$1',pts:494,vor:193,type:'auction'},
+  {y:'2021',p:'Josh Allen',pos:'QB',m:'Chris',pick:'R3',pts:491,vor:190,type:'snake'},
+  {y:'2009',p:'Chris Johnson',pos:'RB',m:'Nels',pick:'R1',pts:381,vor:297,type:'snake'},
+  {y:'2024',p:'Saquon Barkley',pos:'RB',m:'Ryan',pick:'$55',pts:352,vor:278,type:'auction'},
+  {y:'2012',p:'Adrian Peterson',pos:'RB',m:'Chris T',pick:'R2',pts:337,vor:277,type:'snake'},
+  {y:'2021',p:'Jonathan Taylor',pos:'RB',m:'Ryan',pick:'R1',pts:364,vor:274,type:'snake'},
+  {y:'2020',p:'Derrick Henry',pos:'RB',m:'Mike',pick:'$62',pts:342,vor:273,type:'auction'},
+  {y:'2010',p:'Arian Foster',pos:'RB',m:'Josh',pick:'R4',pts:345,vor:270,type:'snake'},
+  {y:'2017',p:'Todd Gurley',pos:'RB',m:'T Rex',pick:'R2',pts:330,vor:267,type:'snake'},
+  {y:'2024',p:'Derrick Henry',pos:'RB',m:'Chris T',pick:'$59',pts:340,vor:266,type:'auction'},
+  {y:'2016',p:'David Johnson',pos:'RB',m:'Ryan',pick:'$58',pts:333,vor:264,type:'auction'},
+  {y:'2023',p:'Christian McCaffrey',pos:'RB',m:'Nels',pick:'R1',pts:337,vor:251,type:'snake'},
+  {y:'2021',p:'Cooper Kupp',pos:'WR',m:'Mike',pick:'R4',pts:329,vor:237,type:'snake'},
+  {y:'2011',p:'Calvin Johnson',pos:'WR',m:'Ryan',pick:'R2',pts:286,vor:201,type:'snake'},
+  {y:'2025',p:"Jaxon Smith-Njigba",pos:'WR',m:'Bryson',pick:'R4',pts:269,vor:186,type:'snake'},
+  {y:'2024',p:"Ja'Marr Chase",pos:'WR',m:'T Rex',pick:'$60',pts:287,vor:185,type:'auction'},
+  {y:'2015',p:'Antonio Brown',pos:'WR',m:'Josh',pick:'R1',pts:279,vor:178,type:'snake'},
+  {y:'2021',p:'Deebo Samuel',pos:'WR',m:'Jack',pick:'R8',pts:270,vor:178,type:'snake'},
+  {y:'2025',p:'Puka Nacua',pos:'WR',m:'Bryson',pick:'R2',pts:260,vor:177,type:'snake'},
+  {y:'2022',p:'Justin Jefferson',pos:'WR',m:'T Rex',pick:'$60',pts:270,vor:176,type:'auction'},
+  {y:'2023',p:'CeeDee Lamb',pos:'WR',m:'Jeremy',pick:'R2',pts:287,vor:174,type:'snake'},
+  {y:'2023',p:'Tyreek Hill',pos:'WR',m:'Josh',pick:'R1',pts:282,vor:169,type:'snake'},
+  {y:'2013',p:'Jimmy Graham',pos:'TE',m:'Bryson',pick:'R2',pts:235,vor:179,type:'snake'},
+  {y:'2011',p:'Rob Gronkowski',pos:'TE',m:'Mike',pick:'R10',pts:253,vor:169,type:'snake'},
+  {y:'2022',p:'Travis Kelce',pos:'TE',m:'Wes',pick:'$41',pts:224,vor:164,type:'auction'},
+  {y:'2021',p:'Mark Andrews',pos:'TE',m:'Jack',pick:'R6',pts:205,vor:155,type:'snake'},
+  {y:'2018',p:'Travis Kelce',pos:'TE',m:'Nels',pick:'$29',pts:203,vor:154,type:'auction'},
+  {y:'2020',p:'Travis Kelce',pos:'TE',m:'Wes',pick:'$47',pts:224,vor:153,type:'auction'},
+  {y:'2009',p:'Vernon Davis',pos:'TE',m:'Chris T',pick:'R14',pts:180,vor:143,type:'snake'},
+  {y:'2017',p:'Rob Gronkowski',pos:'TE',m:'T Rex',pick:'R3',pts:164,vor:134,type:'snake'},
+  {y:'2009',p:'Dallas Clark',pos:'TE',m:'Nels',pick:'R6',pts:171,vor:134,type:'snake'},
+  {y:'2015',p:'Rob Gronkowski',pos:'TE',m:'Bryson',pick:'R1',pts:196,vor:131,type:'snake'},
+  {y:'2017',p:'Stephen Gostkowski',pos:'K',m:'Joe',pick:'R12',pts:172,vor:172,type:'snake'},
+  {y:'2017',p:'Wil Lutz',pos:'K',m:'matt',pick:'R15',pts:163,vor:163,type:'snake'},
+  {y:'2021',p:'Justin Tucker',pos:'K',m:'Josh',pick:'R12',pts:162,vor:162,type:'snake'},
+  {y:'2017',p:'Justin Tucker',pos:'K',m:'T Rex',pick:'R12',pts:162,vor:162,type:'snake'},
+  {y:'2017',p:'Matt Bryant',pos:'K',m:'Nels',pick:'R14',pts:162,vor:162,type:'snake'},
+  {y:'2021',p:'Matt Gay',pos:'K',m:'Nels',pick:'R14',pts:159,vor:159,type:'snake'},
+  {y:'2022',p:'Justin Tucker',pos:'K',m:'matt',pick:'$2',pts:164,vor:145,type:'auction'},
+  {y:'2021',p:'Tyler Bass',pos:'K',m:'Mike',pick:'R14',pts:143,vor:143,type:'snake'},
+  {y:'2022',p:'Daniel Carlson',pos:'K',m:'Wes',pick:'$1',pts:162,vor:143,type:'auction'},
+  {y:'2016',p:'Graham Gano',pos:'K',m:'Nels',pick:'$1',pts:141,vor:141,type:'auction'},
+  {y:'2012',p:'Bears',pos:'DEF',m:'Mike',pick:'R8',pts:226,vor:114,type:'snake'},
+  {y:'2017',p:'Jaguars',pos:'DEF',m:'Jack',pick:'R14',pts:205,vor:106,type:'snake'},
+  {y:'2025',p:'Seahawks',pos:'DEF',m:'Josh',pick:'R14',pts:173,vor:95,type:'snake'},
+  {y:'2018',p:'Bears',pos:'DEF',m:'Chris T',pick:'$1',pts:187,vor:90,type:'auction'},
+  {y:'2017',p:'Ravens',pos:'DEF',m:'Unknown',pick:'R15',pts:187,vor:88,type:'snake'},
+  {y:'2025',p:'Texans',pos:'DEF',m:'Chris T',pick:'R14',pts:164,vor:86,type:'snake'},
+  {y:'2013',p:'Seahawks',pos:'DEF',m:'Nels',pick:'R7',pts:197,vor:80,type:'snake'},
+  {y:'2022',p:'Patriots',pos:'DEF',m:'Wes',pick:'$1',pts:180,vor:77,type:'auction'},
+  {y:'2023',p:'Cowboys',pos:'DEF',m:'Chris T',pick:'R11',pts:178,vor:76,type:'snake'},
+  {y:'2012',p:'Seahawks',pos:'DEF',m:'Josh',pick:'R10',pts:186,vor:74,type:'snake'},
+];
+const ALL_PICKS_WORST=[
+  {y:'2013',p:'Vince Young',pos:'QB',m:'Jack',pick:'R15',pts:0,vor:-321,type:'snake'},
+  {y:'2016',p:'Tony Romo',pos:'QB',m:'T Rex',pick:'$5',pts:7,vor:-309,type:'auction'},
+  {y:'2021',p:'Ryan Fitzpatrick',pos:'QB',m:'Nels',pick:'R12',pts:0,vor:-301,type:'snake'},
+  {y:'2012',p:'Matt Flynn',pos:'QB',m:'Nels',pick:'R13',pts:2,vor:-300,type:'snake'},
+  {y:'2018',p:'Jimmy Garoppolo',pos:'QB',m:'Nels',pick:'$6',pts:56,vor:-298,type:'auction'},
+  {y:'2012',p:'Tim Tebow',pos:'QB',m:'T Rex',pick:'R14',pts:7,vor:-295,type:'snake'},
+  {y:'2013',p:'Josh Freeman',pos:'QB',m:'Jeff',pick:'R13',pts:32,vor:-289,type:'snake'},
+  {y:'2022',p:'Trey Lance',pos:'QB',m:'matt',pick:'$2',pts:11,vor:-282,type:'auction'},
+  {y:'2023',p:'Aaron Rodgers',pos:'QB',m:'Josh',pick:'R8',pts:0,vor:-278,type:'snake'},
+  {y:'2009',p:'Pat White',pos:'QB',m:'Jack',pick:'R15',pts:6,vor:-276,type:'snake'},
+  {y:'2021',p:'Gus Edwards',pos:'RB',m:'Ryan',pick:'R4',pts:0,vor:-90,type:'snake'},
+  {y:'2021',p:'Raheem Mostert',pos:'RB',m:'Josh',pick:'R6',pts:2,vor:-88,type:'snake'},
+  {y:'2013',p:'Isaac Redman',pos:'RB',m:'Unknown',pick:'R11',pts:0,vor:-88,type:'snake'},
+  {y:'2013',p:'Mikel Leshoure',pos:'RB',m:'T Rex',pick:'R15',pts:0,vor:-88,type:'snake'},
+  {y:'2023',p:'Rashaad Penny',pos:'RB',m:'Bryson',pick:'R11',pts:1,vor:-85,type:'snake'},
+  {y:'2015',p:'Reggie Bush',pos:'RB',m:'matt',pick:'R11',pts:3,vor:-84,type:'snake'},
+  {y:'2025',p:'Joe Mixon',pos:'RB',m:'Jack',pick:'R10',pts:0,vor:-83,type:'snake'},
+  {y:'2025',p:'Isaac Guerendo',pos:'RB',m:'matt',pick:'R13',pts:0,vor:-83,type:'snake'},
+  {y:'2011',p:'Rashad Jennings',pos:'RB',m:'Jack',pick:'R12',pts:0,vor:-82,type:'snake'},
+  {y:'2023',p:'Deuce Vaughn',pos:'RB',m:'Chris',pick:'R15',pts:4,vor:-82,type:'snake'},
+  {y:'2015',p:'Victor Cruz',pos:'WR',m:'Joseph',pick:'R13',pts:0,vor:-101,type:'snake'},
+  {y:'2012',p:'Austin Collie',pos:'WR',m:'Jeff',pick:'R13',pts:0,vor:-99,type:'snake'},
+  {y:'2012',p:'Vincent Brown',pos:'WR',m:'Jack',pick:'R13',pts:0,vor:-99,type:'snake'},
+  {y:'2023',p:'Van Jefferson',pos:'WR',m:'Garrett',pick:'R10',pts:15,vor:-98,type:'snake'},
+  {y:'2018',p:'Rishard Matthews',pos:'WR',m:'Jeremy',pick:'$1',pts:0,vor:-97,type:'auction'},
+  {y:'2020',p:'Courtland Sutton',pos:'WR',m:'T Rex',pick:'$10',pts:6,vor:-96,type:'auction'},
+  {y:'2015',p:'Brian Quick',pos:'WR',m:'Jack',pick:'R11',pts:7,vor:-94,type:'snake'},
+  {y:'2023',p:'Treylon Burks',pos:'WR',m:'T Rex',pick:'R12',pts:19,vor:-94,type:'snake'},
+  {y:'2024',p:'Hollywood Brown',pos:'WR',m:'Unknown',pick:'$5',pts:8,vor:-94,type:'auction'},
+  {y:'2023',p:'Kadarius Toney',pos:'WR',m:'Chris T',pick:'R10',pts:20,vor:-93,type:'snake'},
+  {y:'2020',p:'Blake Jarwin',pos:'TE',m:'Wes',pick:'$2',pts:1,vor:-70,type:'auction'},
+  {y:'2016',p:'Benjamin Watson',pos:'TE',m:'Chris T',pick:'$1',pts:0,vor:-69,type:'auction'},
+  {y:'2011',p:'Zach Miller',pos:'TE',m:'Chris T',pick:'R13',pts:18,vor:-66,type:'snake'},
+  {y:'2011',p:'Lance Kendricks',pos:'TE',m:'Bryson',pick:'R14',pts:27,vor:-57,type:'snake'},
+  {y:'2015',p:'Dwayne Allen',pos:'TE',m:'Mike',pick:'R15',pts:13,vor:-52,type:'snake'},
+  {y:'2013',p:'Zach Sudfeld',pos:'TE',m:'Bryson',pick:'R14',pts:5,vor:-51,type:'snake'},
+  {y:'2021',p:'Irv Smith Jr.',pos:'TE',m:'Evan',pick:'R14',pts:0,vor:-50,type:'snake'},
+  {y:'2024',p:'Luke Musgrave',pos:'TE',m:'T Rex',pick:'$1',pts:2,vor:-49,type:'auction'},
+  {y:'2011',p:'Marcedes Lewis',pos:'TE',m:'matt',pick:'R12',pts:39,vor:-45,type:'snake'},
+  {y:'2013',p:'Fred Davis',pos:'TE',m:'Wes',pick:'R8',pts:11,vor:-45,type:'snake'},
+  {y:'2012',p:'Neil Rackers',pos:'K',m:'T Rex',pick:'R11',pts:0,vor:-100,type:'snake'},
+  {y:'2012',p:'John Kasay',pos:'K',m:'Josh',pick:'R13',pts:0,vor:-100,type:'snake'},
+  {y:'2011',p:'Nate Kaeding',pos:'K',m:'Chris',pick:'R9',pts:0,vor:-89,type:'snake'},
+  {y:'2011',p:'Garrett Hartley',pos:'K',m:'matt',pick:'R13',pts:0,vor:-89,type:'snake'},
+  {y:'2011',p:'David Buehler',pos:'K',m:'Wes',pick:'R15',pts:0,vor:-89,type:'snake'},
+  {y:'2012',p:'Billy Cundiff',pos:'K',m:'Ryan',pick:'R14',pts:41,vor:-59,type:'snake'},
+  {y:'2010',p:'Joe Nedney',pos:'K',m:'Josh',pick:'R15',pts:55,vor:-54,type:'snake'},
+  {y:'2010',p:'Stephen Gostkowski',pos:'K',m:'Unknown',pick:'R9',pts:58,vor:-51,type:'snake'},
+  {y:'2012',p:'Graham Gano',pos:'K',m:'Chris T',pick:'R15',pts:51,vor:-49,type:'snake'},
+  {y:'2010',p:'Ryan Longwell',pos:'K',m:'Jeff',pick:'R10',pts:83,vor:-26,type:'snake'},
+  {y:'2012',p:'Chiefs',pos:'DEF',m:'Chris T',pick:'R10',pts:56,vor:-56,type:'snake'},
+  {y:'2012',p:'Eagles',pos:'DEF',m:'T Rex',pick:'R9',pts:61,vor:-51,type:'snake'},
+  {y:'2013',p:'Texans',pos:'DEF',m:'matt',pick:'R8',pts:72,vor:-45,type:'snake'},
+  {y:'2023',p:'Commanders',pos:'DEF',m:'Jack',pick:'R14',pts:58,vor:-44,type:'snake'},
+  {y:'2012',p:'Lions',pos:'DEF',m:'Unknown',pick:'R8',pts:69,vor:-43,type:'snake'},
+  {y:'2011',p:'Colts',pos:'DEF',m:'matt',pick:'R15',pts:83,vor:-35,type:'snake'},
+  {y:'2010',p:'Bengals',pos:'DEF',m:'Ryan',pick:'R13',pts:101,vor:-26,type:'snake'},
+  {y:'2013',p:'Chargers',pos:'DEF',m:'Chris T',pick:'R15',pts:93,vor:-24,type:'snake'},
+  {y:'2010',p:'Dolphins',pos:'DEF',m:'Josh',pick:'R11',pts:105,vor:-22,type:'snake'},
+  {y:'2012',p:'Cowboys',pos:'DEF',m:'Nels',pick:'R11',pts:91,vor:-21,type:'snake'},
+];
+
+// VOR-based best/worst team drafts
+const DRAFT_BEST_DATA=[
+  {y:'2009',m:'Nels',team:"Seattle Scgreat's",type:'snake',vor:767,z:2.25,picks:[{n:'Chris Johnson',r:'R1',pos:'RB',pts:381,v:297},{n:'Dallas Clark',r:'R6',pos:'TE',pts:171,v:134},{n:'Randy Moss',r:'R2',pos:'WR',pts:216,v:126},{n:'Joseph Addai',r:'R5',pos:'RB',pts:184,v:100},{n:'Steve Smith',r:'R15',pos:'WR',pts:170,v:80}]},
+  {y:'2023',m:'Ryan',team:'Balls deep',type:'snake',vor:782,z:1.9,picks:[{n:'Dak Prescott',r:'R8',pos:'QB',pts:425,v:147},{n:'Jalen Hurts',r:'R2',pos:'QB',pts:408,v:130},{n:'James Cook III',r:'R4',pos:'RB',pts:185,v:99},{n:'Sam LaPorta',r:'R15',pos:'TE',pts:148,v:93},{n:'George Kittle',r:'R6',pos:'TE',pts:140,v:85}]},
+  {y:'2015',m:'Nels',team:"Nelson's Man-Dillas",type:'snake',vor:735,z:1.86,picks:[{n:'DeAndre Hopkins',r:'R3',pos:'WR',pts:235,v:134},{n:'DeAngelo Williams',r:'R15',pos:'RB',pts:195,v:108},{n:'Stephen Gostkowski',r:'R11',pos:'K',pts:171,v:97},{n:'Doug Baldwin',r:'R14',pos:'WR',pts:196,v:95},{n:'Greg Olsen',r:'R5',pos:'TE',pts:156,v:91}]},
+  {y:'2011',m:'Mike',team:'Paradox',type:'snake',vor:888,z:1.82,picks:[{n:'Arian Foster',r:'R1',pos:'RB',pts:278,v:196},{n:'Matthew Stafford',r:'R9',pos:'QB',pts:455,v:185},{n:'Rob Gronkowski',r:'R10',pos:'TE',pts:253,v:169},{n:'Fred Jackson',r:'R8',pos:'RB',pts:186,v:104},{n:'Matt Ryan',r:'R5',pos:'QB',pts:348,v:78}]},
+  {y:'2012',m:'Josh',team:'Off Constantly',type:'snake',vor:726,z:1.76,picks:[{n:'Marshawn Lynch',r:'R2',pos:'RB',pts:274,v:214},{n:'Tom Brady',r:'R1',pos:'QB',pts:437,v:135},{n:'Dez Bryant',r:'R4',pos:'WR',pts:220,v:121},{n:'Shonn Greene',r:'R5',pos:'RB',pts:163,v:103},{n:'Seahawks',r:'R10',pos:'DEF',pts:186,v:74}]},
+  {y:'2025',m:'Chris',team:'Bijan Mustard',type:'snake',vor:789,z:1.68,picks:[{n:'Josh Allen',r:'R3',pos:'QB',pts:414,v:136},{n:'Saquon Barkley',r:'R1',pos:'RB',pts:196,v:113},{n:'Trevor Lawrence',r:'R12',pos:'QB',pts:384,v:106},{n:'Chris Olave',r:'R9',pos:'WR',pts:172,v:89},{n:'Zay Flowers',r:'R6',pos:'WR',pts:157,v:74}]},
+  {y:'2010',m:'Jack',team:'Mitha Rodgas Neybhud',type:'snake',vor:496,z:1.65,picks:[{n:'Darren McFadden',r:'R11',pos:'RB',pts:232,v:157},{n:'Matt Forte',r:'R5',pos:'RB',pts:215,v:140},{n:'Roddy White',r:'R2',pos:'WR',pts:213,v:123},{n:'Aaron Rodgers',r:'R1',pos:'QB',pts:373,v:103},{n:'Sebastian Janikowski',r:'R13',pos:'K',pts:158,v:49}]},
+  {y:'2021',m:'Ryan',team:'Balls deep',type:'snake',vor:863,z:1.45,picks:[{n:'Jonathan Taylor',r:'R1',pos:'RB',pts:364,v:274},{n:'Tom Brady',r:'R6',pos:'QB',pts:496,v:195},{n:'Travis Kelce',r:'R2',pos:'TE',pts:177,v:127},{n:'Diontae Johnson',r:'R5',pos:'WR',pts:172,v:80},{n:'Rob Gronkowski',r:'R11',pos:'TE',pts:123,v:73}]},
+  {y:'2024',m:'Ryan',team:'Balls deep',type:'auction',vor:908,z:1.81,picks:[{n:'Saquon Barkley',r:'$55',pos:'RB',pts:352,v:278},{n:'George Kittle',r:'$6',pos:'TE',pts:168,v:117},{n:'Alvin Kamara',r:'$12',pos:'RB',pts:198,v:124},{n:'Aaron Jones',r:'$9',pos:'RB',pts:183,v:109},{n:'Courtland Sutton',r:'$1',pos:'WR',pts:167,v:65}]},
+  {y:'2018',m:'Josh',team:"Jerry's Fairies",type:'auction',vor:788,z:1.76,picks:[{n:'Patrick Mahomes',r:'$2',pos:'QB',pts:555,v:201},{n:'Chris Carson',r:'$4',pos:'RB',pts:194,v:113},{n:'Tyreek Hill',r:'$35',pos:'WR',pts:259,v:162},{n:'Isaiah Crowell',r:'$2',pos:'RB',pts:117,v:36},{n:'Chris Godwin Jr.',r:'$3',pos:'WR',pts:133,v:36}]},
+];
+const DRAFT_WORST_DATA=[
+  {y:'2011',m:'T Rex',team:'CItron My Face',type:'snake',vor:-84,z:-1.78,picks:[{n:'LeSean McCoy',r:'R2',pos:'RB',pts:294,v:212},{n:'Michael Bush',r:'R10',pos:'RB',pts:178,v:96},{n:'Brandon Marshall',r:'R6',pos:'WR',pts:169,v:84},{n:'LeGarrette Blount',r:'R3',pos:'RB',pts:120,v:38},{n:'Eagles',r:'R8',pos:'DEF',pts:147,v:29}]},
+  {y:'2015',m:'Josh',team:'Off Constantly',type:'snake',vor:-107,z:-1.67,picks:[{n:'Antonio Brown',r:'R1',pos:'WR',pts:279,v:178},{n:'A.J. Green',r:'R2',pos:'WR',pts:195,v:94},{n:'Latavius Murray',r:'R3',pos:'RB',pts:156,v:69},{n:'Chris Johnson',r:'R15',pos:'RB',pts:112,v:25},{n:'Anquan Boldin',r:'R9',pos:'WR',pts:103,v:2}]},
+  {y:'2010',m:'Chris',team:"TD's N' Beer",type:'snake',vor:-266,z:-1.67,picks:[{n:'Calvin Johnson',r:'R2',pos:'WR',pts:198,v:108},{n:'Reggie Wayne',r:'R1',pos:'WR',pts:178,v:88},{n:'Thomas Jones',r:'R5',pos:'RB',pts:134,v:59},{n:'Cardinals',r:'R15',pos:'DEF',pts:150,v:23},{n:'Rob Bironas',r:'R9',pos:'K',pts:122,v:13}]},
+  {y:'2017',m:'Ryan',team:'Balls deep',type:'snake',vor:145,z:-1.66,picks:[{n:'DeAndre Hopkins',r:'R3',pos:'WR',pts:227,v:150},{n:'Stephen Hauschka',r:'R14',pos:'K',pts:137,v:137},{n:'Jack Doyle',r:'R11',pos:'TE',pts:86,v:56},{n:'Hunter Henry',r:'R8',pos:'TE',pts:78,v:48},{n:'Steelers',r:'R15',pos:'DEF',pts:139,v:40}]},
+  {y:'2013',m:'Jeff',team:'Long Live Jerrrah',type:'snake',vor:-105,z:-1.62,picks:[{n:'Marshawn Lynch',r:'R1',pos:'RB',pts:236,v:148},{n:'Knowshon Moreno',r:'R10',pos:'RB',pts:224,v:136},{n:'Pierre Garcon',r:'R5',pos:'WR',pts:174,v:80},{n:'Larry Fitzgerald',r:'R3',pos:'WR',pts:154,v:60},{n:'Rob Gronkowski',r:'R4',pos:'TE',pts:92,v:36}]},
+  {y:'2012',m:'T Rex',team:'The Dude.',type:'snake',vor:-211,z:-1.58,picks:[{n:'Roddy White',r:'R2',pos:'WR',pts:197,v:98},{n:'Matt Ryan',r:'R5',pos:'QB',pts:390,v:88},{n:'Darren Sproles',r:'R3',pos:'RB',pts:139,v:79},{n:'Heath Miller',r:'R13',pos:'TE',pts:125,v:56},{n:'Darren McFadden',r:'R1',pos:'RB',pts:113,v:53}]},
+  {y:'2022',m:'matt',team:'scute without the e',type:'auction',vor:115,z:-1.72,picks:[{n:'Justin Tucker',r:'$2',pos:'K',pts:164,v:145},{n:'Davante Adams',r:'$45',pos:'WR',pts:261,v:167},{n:'C. Patterson',r:'$2',pos:'RB',pts:135,v:50},{n:'Travis Etienne Jr.',r:'$28',pos:'RB',pts:182,v:97},{n:'Bills',r:'$3',pos:'DEF',pts:136,v:33}]},
+  {y:'2024',m:'T Rex',team:'Fuuck Stan Kroenke',type:'auction',vor:39,z:-1.45,picks:[{n:'Rico Dowdle',r:'$9',pos:'RB',pts:162,v:88},{n:'Justin Tucker',r:'$3',pos:'K',pts:143,v:49},{n:'Mark Andrews',r:'$16',pos:'TE',pts:126,v:75},{n:'Rhamondre Stevenson',r:'$13',pos:'RB',pts:134,v:60},{n:'Tee Higgins',r:'$8',pos:'WR',pts:151,v:49}]},
+  {y:'2016',m:'matt',team:'Simmons is old!',type:'auction',vor:21,z:-1.43,picks:[{n:'Stephen Hauschka',r:'$1',pos:'K',pts:138,v:138},{n:"Le'Veon Bell",r:'$45',pos:'RB',pts:255,v:186},{n:'Chiefs',r:'$1',pos:'DEF',pts:164,v:68},{n:'Brandin Cooks',r:'$37',pos:'WR',pts:171,v:84},{n:'Tyler Eifert',r:'$1',pos:'TE',pts:68,v:-1}]},
+  {y:'2022',m:'T Rex',team:'Fuuck Stan Kroenke (2022)',type:'auction',vor:203,z:-1.34,picks:[{n:'Jaylen Waddle',r:'$8',pos:'WR',pts:199,v:105},{n:'DK Metcalf',r:'$5',pos:'WR',pts:142,v:48},{n:'Stefon Diggs',r:'$47',pos:'WR',pts:229,v:135},{n:'Drake London',r:'$1',pos:'WR',pts:109,v:15},{n:'Colts',r:'$1',pos:'DEF',pts:116,v:13}]},
+];
 
 const WAIVER_CAREER=[{m:'Chris T',total:747,rb:228,wr:175,te:100,qb:64,def:117,k:59,peak:'2023',vol:92},{m:'matt',total:461,rb:128,wr:117,te:39,qb:57,def:67,k:51,peak:'2021',vol:91},{m:'Jack',total:442,rb:136,wr:96,te:45,qb:35,def:79,k:51,peak:'2021',vol:41},{m:'Mike',total:440,rb:109,wr:119,te:52,qb:43,def:79,k:36,peak:'2024',vol:66},{m:'Josh',total:396,rb:77,wr:88,te:70,qb:32,def:89,k:38,peak:'2016',vol:46},{m:'Bryson',total:384,rb:100,wr:73,te:42,qb:33,def:89,k:44,peak:'2015',vol:40},{m:'Nels',total:375,rb:107,wr:92,te:45,qb:48,def:44,k:32,peak:'2020',vol:39},{m:'T Rex',total:257,rb:52,wr:48,te:38,qb:23,def:64,k:28,peak:'2016',vol:35},{m:'Chris',total:216,rb:49,wr:43,te:28,qb:14,def:56,k:26,peak:'2020',vol:33},{m:'Ryan',total:215,rb:34,wr:36,te:23,qb:25,def:67,k:30,peak:'2021',vol:33},{m:'Wes',total:193,rb:42,wr:44,te:25,qb:26,def:32,k:22,peak:'2021',vol:26}];
 const WAIVER_BEST_ALL=[{y:'2024',p:'Baker Mayfield',pos:'QB',m:'Josh',pts:464},{y:'2018',p:'Matt Ryan',pos:'QB',m:'Chris T',pts:452},{y:'2015',p:'Carson Palmer',pos:'QB',m:'T Rex',pts:415},{y:'2019',p:'Jameis Winston',pos:'QB',m:'Chris T',pts:415},{y:'2014',p:'Ben Roethlisberger',pos:'QB',m:'Ryan',pts:404},{y:'2021',p:'Kirk Cousins',pos:'QB',m:'Bryson',pts:385},{y:'2023',p:'Brock Purdy',pos:'QB',m:'Bryson',pts:370},{y:'2024',p:'Bo Nix',pos:'QB',m:'Chris T',pts:367},{y:'2016',p:'Dak Prescott',pos:'QB',m:'matt',pts:391},{y:'2020',p:'Dak Prescott',pos:'QB',m:'Nels',pts:360},{y:'2021',p:'Jalen Hurts',pos:'QB',m:'Jack',pts:340},{y:'2017',p:'Matthew Stafford',pos:'QB',m:'Wes',pts:344},{y:'2020',p:'Stefon Diggs',pos:'WR',m:'Ryan',pts:221},{y:'2021',p:'Cooper Kupp',pos:'WR',m:'Chris',pts:329},{y:'2018',p:'Robert Woods',pos:'WR',m:'Chris T',pts:180},{y:'2022',p:'Tyreek Hill',pos:'WR',m:'matt',pts:197},{y:'2010',p:'Arian Foster',pos:'RB',m:'Josh',pts:345},{y:'2018',p:'James Conner',pos:'RB',m:'Chris T',pts:233},{y:'2016',p:'LeGarrette Blount',pos:'RB',m:'Chris',pts:234},{y:'2021',p:'Cordarrelle Patterson',pos:'RB',m:'Jack',pts:135},{y:'2018',p:'George Kittle',pos:'TE',m:'Ryan',pts:180},{y:'2020',p:'Darren Waller',pos:'TE',m:'Ryan',pts:184},{y:'2019',p:'Mark Andrews',pos:'TE',m:'Chris T',pts:177},{y:'2021',p:'Rob Gronkowski',pos:'TE',m:'T Rex',pts:149},{y:'2024',p:"Ka'imi Fairbairn",pos:'K',m:'matt',pts:172},{y:'2024',p:'Brandon Aubrey',pos:'K',m:'Wes',pts:192},{y:'2023',p:'Evan McPherson',pos:'K',m:'Nels',pts:148},{y:'2022',p:'Evan McPherson',pos:'K',m:'Chris',pts:156},{y:'2018',p:'Bears',pos:'DEF',m:'Chris T',pts:187},{y:'2022',p:'Patriots',pos:'DEF',m:'Wes',pts:180},{y:'2020',p:'Steelers',pos:'DEF',m:'matt',pts:148},{y:'2024',p:'Bills',pos:'DEF',m:'Josh',pts:162}];
@@ -482,20 +509,7 @@ const EVO_B=[{y:'2018',m:'Nels',t:"Nelson's Man-Dillas",dr:12,fr:2,d:10},{y:'201
 const EVO_W=[{y:'2009',m:'Travis',t:'The T.O. Show',dr:2,fr:12,d:-10},{y:'2015',m:'Mike',t:'Shmeeper Bowl Champs',dr:1,fr:8,d:-7},{y:'2013',m:'Nels',t:"Nels's Nancies",dr:4,fr:11,d:-7},{y:'2017',m:'Jeremy',t:'Sergio Dipp',dr:3,fr:10,d:-7},{y:'2010',m:'Ryan',t:'CTown OGs',dr:4,fr:10,d:-6},{y:'2010',m:'Chris T',t:'McCluster Fucks',dr:7,fr:13,d:-6},{y:'2009',m:'JR',t:'Donkey Punch',dr:4,fr:10,d:-6},{y:'2015',m:'Chris T',t:'Taste Dwayne Bowe',dr:5,fr:11,d:-6},{y:'2025',m:'Ryan',t:'Balls deep',dr:2,fr:8,d:-6},{y:'2021',m:'Nels',t:"Nelson's Man-Dillas",dr:11,fr:5,d:6}];
 const PI_TOP=[{y:'2022',m:'Chris T',t:"Dad Bod's Squad",pi:94.0},{y:'2019',m:'Chris T',t:'Dad Bod Squad',pi:85.5},{y:'2014',m:'Nels',t:"Nelson's Man-Dillas",pi:84.6},{y:'2024',m:'Ryan',t:'Balls deep',pi:82.7},{y:'2020',m:'Chris T',t:'Dad Bod Squad',pi:79.5},{y:'2011',m:'Mike',t:'Paradox',pi:77.3},{y:'2010',m:'Jack',t:'Mitha Rodgas Neybhud',pi:76.4},{y:'2010',m:'T Rex',t:'Golden Tate Showers',pi:75.8},{y:'2018',m:'Ryan',t:'Balls deep',pi:74.9},{y:'2025',m:'Chris T',t:'Country Roads Take Mahomes',pi:74.3}];
 const PI_BOT=[{y:'2012',m:'Unknown',t:'My Team is Terrible',pi:30.6},{y:'2024',m:'Bryson',t:'Fuuck Stan Kroenke',pi:30.8},{y:'2021',m:'Evan',t:'Sergio Dipp',pi:31.0},{y:'2010',m:'Josh',t:'Off Constantly',pi:32.5},{y:'2015',m:'Wes',t:'Romophobic',pi:33.7},{y:'2012',m:'T Rex',t:'The Dude.',pi:37.5},{y:'2025',m:'Jeremy',t:"Chase'n Jayden",pi:38.1},{y:'2018',m:'matt',t:'Discount Dbl Gut Chk',pi:38.6},{y:'2024',m:'Jack',t:'Mitha Rodgas Neybhud',pi:38.9},{y:'2015',m:'Jeff',t:'Long Live Jerrrah',pi:39.2}];
-// Updated: 2pts/title, 1pt/playoff appearance
-const PI_CAREER=[
-  {m:'Chris T',s:17,avg:62.4,ti:4,tb:8,pl:10,pb:10,final:80.4},
-  {m:'Nels',   s:17,avg:55.1,ti:4,tb:8,pl:8, pb:8, final:71.1},
-  {m:'Ryan',   s:17,avg:53.3,ti:4,tb:8,pl:6, pb:6, final:67.3},
-  {m:'Mike',   s:16,avg:58.2,ti:2,tb:4,pl:7, pb:7, final:69.2},
-  {m:'Jack',   s:17,avg:56.0,ti:1,tb:2,pl:5, pb:5, final:63.0},
-  {m:'Bryson', s:17,avg:54.1,ti:0,tb:0,pl:6, pb:6, final:60.1},
-  {m:'T Rex',  s:15,avg:55.3,ti:0,tb:0,pl:5, pb:5, final:60.3},
-  {m:'Josh',   s:17,avg:49.9,ti:1,tb:2,pl:4, pb:4, final:55.9},
-  {m:'matt',   s:15,avg:50.0,ti:0,tb:0,pl:4, pb:4, final:54.0},
-  {m:'Chris',  s:17,avg:48.9,ti:0,tb:0,pl:1, pb:1, final:49.9},
-  {m:'Wes',    s:11,avg:40.1,ti:0,tb:0,pl:1, pb:1, final:41.1},
-];
+const PI_CAREER=[{m:'Chris T',s:17,avg:62.4,ti:4,tb:8,pl:10,pb:10,final:80.4},{m:'Nels',s:17,avg:55.1,ti:4,tb:8,pl:8,pb:8,final:71.1},{m:'Ryan',s:17,avg:53.3,ti:4,tb:8,pl:6,pb:6,final:67.3},{m:'Mike',s:16,avg:58.2,ti:2,tb:4,pl:7,pb:7,final:69.2},{m:'Jack',s:17,avg:56.0,ti:1,tb:2,pl:5,pb:5,final:63.0},{m:'Bryson',s:17,avg:54.1,ti:0,tb:0,pl:6,pb:6,final:60.1},{m:'T Rex',s:15,avg:55.3,ti:0,tb:0,pl:5,pb:5,final:60.3},{m:'Josh',s:17,avg:49.9,ti:1,tb:2,pl:4,pb:4,final:55.9},{m:'matt',s:15,avg:50.0,ti:0,tb:0,pl:4,pb:4,final:54.0},{m:'Chris',s:17,avg:48.9,ti:0,tb:0,pl:1,pb:1,final:49.9},{m:'Wes',s:11,avg:40.1,ti:0,tb:0,pl:1,pb:1,final:41.1}];
 let piSort={col:'final',asc:false};
 const PI_HEADERS=[{k:'m',label:'Manager',num:false},{k:'s',label:'Seasons',num:true},{k:'avg',label:'Avg PI',num:true},{k:'ti',label:'Titles',num:true},{k:'tb',label:'Title bonus',num:true},{k:'pl',label:'PO apps',num:true},{k:'pb',label:'PO bonus',num:true},{k:'final',label:'Career PI',num:true}];
 const PPW=[92.2,85.3,94.0,90.2,94.2,98.4,96.7,97.1,92.3,104.4,98.9,100.9,99.9,94.7,97.7,96.8,95.4];
@@ -540,37 +554,48 @@ function buildTrades(){
   document.getElementById('trades-best').innerHTML=tradeCard(TRADES_LOP);
   document.getElementById('trades-fair').innerHTML=tradeCard(TRADES_FAIR);
   const sorted=[...TRADE_DIFF].sort((a,b)=>b.net-a.net);
-  document.getElementById('trade-diff-tb').innerHTML=sorted.map(r=>`<tr>
-    <td><strong>${r.m}</strong></td>
-    <td>${r.trades}</td>
-    <td>${r.recv.toLocaleString()}</td>
-    <td>${r.given.toLocaleString()}</td>
-    <td><span class="bdg ${r.net>=0?'gpos':'gneg'}">${r.net>=0?'+':''}${r.net.toLocaleString()}</span></td>
-  </tr>`).join('');
+  document.getElementById('trade-diff-tb').innerHTML=sorted.map(r=>`<tr><td><strong>${r.m}</strong></td><td>${r.trades}</td><td>${r.recv.toLocaleString()}</td><td>${r.given.toLocaleString()}</td><td><span class="bdg ${r.net>=0?'gpos':'gneg'}">${r.net>=0?'+':''}${r.net.toLocaleString()}</span></td></tr>`).join('');
 }
 
 function setDraftFormat(f,el){draftFormat=f;document.querySelectorAll('[onclick^="setDraftFormat"]').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderDraft();}
 function setDraftPos(p,el){draftPos=p;document.querySelectorAll('[onclick^="setDraftPos"]').forEach(b=>b.classList.remove('on'));el.classList.add('on');renderDraft();}
 
 function renderDraft(){
-  const avgData=(DRAFT_AVG_BY_POS[draftPos]||DRAFT_AVG_BY_POS.all).slice().sort((a,b)=>b.avg-a.avg);
-  const maxAvg=Math.max(...avgData.map(d=>d.avg));
-  document.getElementById('draft-avg-bars').innerHTML=avgData.map(d=>`<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>${d.n}</span><span style="color:var(--color-text-secondary)">${d.avg.toFixed(1)}</span></div>${bar(d.avg,maxAvg,'#378ADD')}</div>`).join('');
+  const posData=(DRAFT_AVG_BY_POS[draftPos]||DRAFT_AVG_BY_POS.all).slice().sort((a,b)=>b.avg-a.avg);
+  const hasNeg=posData.some(d=>d.avg<0);
+  const maxAbs=Math.max(...posData.map(d=>Math.abs(d.avg)));
+  document.getElementById('draft-avg-bars').innerHTML=posData.map(d=>{
+    const isNeg=d.avg<0;
+    const pct=Math.round(Math.abs(d.avg)/maxAbs*100);
+    const col=isNeg?'#D85A30':'#378ADD';
+    const sign=d.avg>=0?'+':'';
+    return`<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:2px"><span>${d.n}</span><span style="color:${isNeg?'#791F1F':'var(--color-text-secondary)'}">${sign}${d.avg.toFixed(1)}</span></div><div class="bb"><div class="bf" style="width:${pct}%;background:${col}"></div></div></div>`;
+  }).join('');
+
   const fmtF=p=>draftFormat==='all'||p.type===draftFormat;
   const posF=p=>posMatch(p.pos,draftPos);
   const filtB=ALL_PICKS_BEST.filter(p=>fmtF(p)&&posF(p));
   const filtW=ALL_PICKS_WORST.filter(p=>fmtF(p)&&posF(p));
-  const metric=p=>`<span style="color:${p.val>=0?'#27500A':'#791F1F'}">${p.type==='auction'?'VOC':'VOE'}: ${p.val>=0?'+':''}${p.val}</span>`;
-  document.getElementById('pick-best-tb').innerHTML=filtB.slice(0,10).map(p=>`<tr><td>${p.y}</td><td>${p.p}</td><td>${posBdg(p.pos)}</td><td>${p.m}</td><td>${typBdg(p.type)} ${p.pick}</td><td>${p.pts}</td><td style="font-size:11px">${metric(p)}</td></tr>`).join('')||'<tr><td colspan="7" style="color:var(--color-text-secondary);text-align:center;padding:12px">No picks match this filter</td></tr>';
-  document.getElementById('pick-worst-tb').innerHTML=filtW.slice(0,10).map(p=>`<tr><td>${p.y}</td><td>${p.p}</td><td>${posBdg(p.pos)}</td><td>${p.m}</td><td>${typBdg(p.type)} ${p.pick}</td><td>${p.pts}</td><td style="font-size:11px">${metric(p)}</td></tr>`).join('')||'<tr><td colspan="7" style="color:var(--color-text-secondary);text-align:center;padding:12px">No picks match this filter</td></tr>';
+  const vorCell=v=>`<span style="color:${v>=0?'#27500A':'#791F1F'}">${v>=0?'+':''}${v}</span>`;
+  document.getElementById('pick-best-tb').innerHTML=filtB.slice(0,10).map(p=>`<tr><td>${p.y}</td><td>${p.p}</td><td>${posBdg(p.pos)}</td><td>${p.m}</td><td>${typBdg(p.type)} ${p.pick}</td><td>${p.pts}</td><td style="font-size:11px">${vorCell(p.vor)}</td></tr>`).join('')||'<tr><td colspan="7" style="color:var(--color-text-secondary);text-align:center;padding:12px">No picks match</td></tr>';
+  document.getElementById('pick-worst-tb').innerHTML=filtW.slice(0,10).map(p=>`<tr><td>${p.y}</td><td>${p.p}</td><td>${posBdg(p.pos)}</td><td>${p.m}</td><td>${typBdg(p.type)} ${p.pick}</td><td>${p.pts}</td><td style="font-size:11px">${vorCell(p.vor)}</td></tr>`).join('')||'<tr><td colspan="7" style="color:var(--color-text-secondary);text-align:center;padding:12px">No picks match</td></tr>';
+
   const filtBest=draftFormat==='all'?DRAFT_BEST_DATA:DRAFT_BEST_DATA.filter(d=>d.type===draftFormat);
   const filtWorst=draftFormat==='all'?DRAFT_WORST_DATA:DRAFT_WORST_DATA.filter(d=>d.type===draftFormat);
+
   function draftEntry(e,best){
     const isA=e.type==='auction';
     const tb=isA?'<span class="bdg gold">auction</span>':'<span class="bdg gblue">snake</span>';
     const zb=best?`<span class="bdg gpos">z=${e.z}</span>`:`<span class="bdg gneg">z=${e.z}</span>`;
-    const picks=e.picks.map(p=>{const v=isA?p.voc:p.voe;return`<div class="de-pick"><span style="flex:1">${p.n}</span><span style="color:var(--color-text-secondary);text-align:right;min-width:140px;font-size:10px">${p.r} · ${p.pts}pts · <span style="color:${v>=0?'#27500A':'#791F1F'}">${isA?'VOC':'VOE'}:${v>=0?'+':''}${v}</span></span></div>`;}).join('');
-    return`<div class="de"><div class="de-hdr"><div><span style="font-size:13px;font-weight:500">${e.y} ${e.m}</span> <span style="font-size:11px;color:var(--color-text-secondary)">${e.team}</span></div><div style="display:flex;gap:4px">${tb}${zb}</div></div><div class="de-picks">${picks}</div></div>`;
+    const metric=isA?'VOC':'VOR';
+    const picks=e.picks.map(p=>{
+      const v=p.v;
+      const pickLabel=isA?`${p.r} · ${p.pts}pts · <span style="color:${v>=0?'#27500A':'#791F1F'}">${metric}:${v>=0?'+':''}${v}</span>`:
+        `${p.r} ${posBdg(p.pos||'?')} · ${p.pts}pts · <span style="color:${v>=0?'#27500A':'#791F1F'}">VOR:${v>=0?'+':''}${v}</span>`;
+      return`<div class="de-pick"><span style="flex:1">${p.n}</span><span style="color:var(--color-text-secondary);text-align:right;min-width:150px;font-size:10px">${pickLabel}</span></div>`;
+    }).join('');
+    const vorLabel=isA?`VOR=${e.vor}`:`VOR=${e.vor}`;
+    return`<div class="de"><div class="de-hdr"><div><span style="font-size:13px;font-weight:500">${e.y} ${e.m}</span> <span style="font-size:11px;color:var(--color-text-secondary)">${e.team}</span></div><div style="display:flex;gap:4px">${tb}${zb}<span style="font-size:10px;color:var(--color-text-secondary);align-self:center">${vorLabel}</span></div></div><div class="de-picks">${picks}</div></div>`;
   }
   document.getElementById('draft-best-list').innerHTML=filtBest.map(e=>draftEntry(e,true)).join('');
   document.getElementById('draft-worst-list').innerHTML=filtWorst.map(e=>draftEntry(e,false)).join('');
@@ -585,10 +610,7 @@ function renderEvo(){
   } else {
     const lbl=evoPos==='SKILL'?'WR/RB/TE':evoPos;
     hdr.innerHTML=`<th>Manager</th><th>Total adds</th><th>${lbl} adds</th><th>Peak season</th><th>Peak vol</th>`;
-    const rows=WAIVER_CAREER.map(w=>{
-      const pv=evoPos==='SKILL'?(w.rb+w.wr+w.te):evoPos==='QB'?w.qb:evoPos==='RB'?w.rb:evoPos==='WR'?w.wr:evoPos==='TE'?w.te:evoPos==='K'?w.k:evoPos==='DEF'?w.def:w.total;
-      return{...w,pv};
-    }).sort((a,b)=>b.pv-a.pv);
+    const rows=WAIVER_CAREER.map(w=>{const pv=evoPos==='SKILL'?(w.rb+w.wr+w.te):evoPos==='QB'?w.qb:evoPos==='RB'?w.rb:evoPos==='WR'?w.wr:evoPos==='TE'?w.te:evoPos==='K'?w.k:evoPos==='DEF'?w.def:w.total;return{...w,pv};}).sort((a,b)=>b.pv-a.pv);
     document.getElementById('waiver-career-tb').innerHTML=rows.map(w=>`<tr><td><strong>${w.m}</strong></td><td>${w.total}</td><td><strong>${w.pv}</strong></td><td>${w.peak}</td><td>${w.vol}</td></tr>`).join('');
   }
   const wb=WAIVER_BEST_ALL.filter(w=>posMatch(w.pos,evoPos)).slice(0,10);
