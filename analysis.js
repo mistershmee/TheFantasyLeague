@@ -538,6 +538,19 @@ function runAnalysis(rawData) {
   }).sort((a, b) => b.total - a.total);
 
   // ── WEEKLY RECAPS ─────────────────────────────────────────────────────────
+  // Arrow function declared once outside the loop — avoids strict-mode issues
+  const buildDiffs = (matches, bracket) => matches.map(m => {
+    const m1 = resolveManager(m.team1_manager, m.team1_name);
+    const m2 = resolveManager(m.team2_manager, m.team2_name);
+    const diff = Math.abs(m.team1_points - m.team2_points);
+    const winner = m.team1_points >= m.team2_points ? m1 : m2;
+    const loser  = m.team1_points >= m.team2_points ? m2 : m1;
+    const winPts = Math.max(m.team1_points, m.team2_points);
+    const losePts= Math.min(m.team1_points, m.team2_points);
+    return { m1, t1:m.team1_name, p1:m.team1_points, m2, t2:m.team2_name, p2:m.team2_points,
+             diff, winner, loser, winPts, losePts, bracket };
+  });
+
   const weeklyRecaps = {};
   for (const year of years) {
     const allMatchups = seasons[year].matchups || [];
@@ -550,21 +563,6 @@ function runAnalysis(rawData) {
 
     const seasonScores = {};
     weeklyRecaps[year] = [];
-
-    // Helper to build diffs array from a set of matchup records
-    function buildDiffs(matches, bracket) {
-      return matches.map(m => {
-        const m1 = resolveManager(m.team1_manager, m.team1_name);
-        const m2 = resolveManager(m.team2_manager, m.team2_name);
-        const diff = Math.abs(m.team1_points - m.team2_points);
-        const winner = m.team1_points >= m.team2_points ? m1 : m2;
-        const loser  = m.team1_points >= m.team2_points ? m2 : m1;
-        const winPts = Math.max(m.team1_points, m.team2_points);
-        const losePts= Math.min(m.team1_points, m.team2_points);
-        return { m1, t1:m.team1_name, p1:m.team1_points, m2, t2:m.team2_name, p2:m.team2_points,
-                 diff, winner, loser, winPts, losePts, bracket };
-      });
-    }
 
     // Regular season weeks
     for (const wk of regWks) {
