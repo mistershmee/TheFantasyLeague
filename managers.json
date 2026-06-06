@@ -1,0 +1,242 @@
+{
+  "_readme": "Source of truth for manager → team name mappings. Edit this file to fix any attribution errors. analysis.js reads this at load time — no code changes needed.",
+  "_unresolved": [
+    "Joe Montainya (2013) — unknown manager, likely Joseph or a one-year participant",
+    "My Team is Terrible (2012) — unknown manager",
+    "Suck My C.Johnson (2010) — unknown manager, finished 5th (10-3)",
+    "ishyaCOWboy (2010) — unknown manager, finished 10th (4-9)"
+  ],
+  "managers": [
+    {
+      "id": "chris_t",
+      "name": "Chris T",
+      "core": true,
+      "teams": [
+        { "name": "Chiefs",                       "years": ["2009"] },
+        { "name": "McCluster Fucks",              "years": ["2010", "2011"] },
+        { "name": "Taste Dwayne Bowe",            "years": ["2012", "2013", "2014", "2015"] },
+        { "name": "Dad Bod Squad",                "years": ["2016", "2017", "2018", "2019", "2020", "2024"] },
+        { "name": "Dad Bod's Squad",              "years": ["2021", "2022", "2023"] },
+        { "name": "Country Roads Take Mahomes",   "years": ["2025"] }
+      ]
+    },
+    {
+      "id": "ryan",
+      "name": "Ryan",
+      "core": true,
+      "teams": [
+        { "name": "CTown OGs",   "years": ["2009", "2010", "2011"] },
+        { "name": "Balls deep",  "years": ["2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025"] }
+      ]
+    },
+    {
+      "id": "nels",
+      "name": "Nels",
+      "core": true,
+      "teams": [
+        { "name": "Seattle Scgreat's",      "years": ["2009", "2010", "2011"] },
+        { "name": "Bi - Flynning",          "years": ["2012"] },
+        { "name": "Nels's Nancies",         "years": ["2013"] },
+        { "name": "Nelson's Man-Dillas",    "years": ["2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025"] }
+      ]
+    },
+    {
+      "id": "mike",
+      "name": "Mike",
+      "core": true,
+      "teams": [
+        { "name": "Jerryworld",          "years": ["2009"] },
+        { "name": "CARRY MY PADS BITCH", "years": ["2010"] },
+        { "name": "Paradox",             "years": ["2011"] },
+        { "name": "Tony Romo",           "years": ["2012"] },
+        { "name": "FAT FUCKING FAGGLES", "years": ["2013"] },
+        { "name": "Shmeeper Bowl Champs","years": ["2014", "2015"] },
+        { "name": "Bills Mafia",         "years": ["2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025"] }
+      ]
+    },
+    {
+      "id": "jack",
+      "name": "Jack",
+      "core": true,
+      "teams": [
+        { "name": "Mitha Rodgas Neybhud", "years": ["2009", "2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025"] }
+      ]
+    },
+    {
+      "id": "josh",
+      "name": "Josh",
+      "core": true,
+      "teams": [
+        { "name": "Suck My Cotchery",    "years": ["2009"] },
+        { "name": "Off Constantly",      "years": ["2010", "2011", "2012", "2013", "2014", "2015", "2016", "2017"] },
+        { "name": "Jerry's Fairies",     "years": ["2018", "2019", "2020"] },
+        { "name": "My Chubb Hurts",      "years": ["2022"] },
+        { "name": "My Dick(er) Reeks",   "years": ["2023"] },
+        { "name": "Turn ur head and Goff","years": ["2024"] },
+        { "name": "Lamb and tuna fish",  "years": ["2025"] }
+      ]
+    },
+    {
+      "id": "bryson",
+      "name": "Bryson",
+      "core": true,
+      "teams": [
+        { "name": "Bros_B4_Shiancoes",   "years": ["2009"] },
+        { "name": "KingLaurinaitis55",   "years": ["2010"] },
+        { "name": "pooooooooop",         "years": ["2011"] },
+        { "name": "CowboyButtsAreGay",   "years": ["2012", "2013"] },
+        { "name": "Im the real Greenie", "years": ["2014", "2015"] },
+        { "name": "Fuuck Stan Kroenke",  "years": ["2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024", "2025"] }
+      ]
+    },
+    {
+      "id": "matt",
+      "name": "matt",
+      "core": true,
+      "_note": "Lowercase 'matt' — correct spelling. BrySons and Petersons of Anarchy were matt NOT Bryson (confirmed via 2016-17 managers file).",
+      "teams": [
+        { "name": "Titsburgh Feelers",       "years": ["2009", "2010", "2011"] },
+        { "name": "Jerry's Gloryholes",      "years": ["2012"] },
+        { "name": "1st Down Syndrome",       "years": ["2013", "2014", "2015"] },
+        { "name": "Petersons of Anarchy",    "years": ["2016"] },
+        { "name": "BrySons of Anarchy",      "years": ["2017"] },
+        { "name": "Discount Dbl Gut Chk",    "years": ["2018", "2019"] },
+        { "name": "scute without the e",     "years": ["2020", "2021", "2022", "2023", "2024", "2025"] }
+      ]
+    },
+    {
+      "id": "t_rex",
+      "name": "T Rex",
+      "core": true,
+      "teams": [
+        { "name": "Golden Tate Showers",     "years": ["2010"] },
+        { "name": "CItron My Face",          "years": ["2011"] },
+        { "name": "The Dude.",               "years": ["2012"] },
+        { "name": "Hernandez Legal Team",    "years": ["2013"] },
+        { "name": "Wherefore & Therein",     "years": ["2014", "2015"] },
+        { "name": "Simmons is old!",         "years": ["2016", "2017", "2018", "2019"] },
+        { "name": "Pity I wasnt invited",    "years": ["2020", "2021", "2022", "2023", "2024", "2025"] }
+      ]
+    },
+    {
+      "id": "chris",
+      "name": "Chris",
+      "core": true,
+      "teams": [
+        { "name": "The Dirty Sanchez",       "years": ["2009"] },
+        { "name": "TD's N' Beer",            "years": ["2010", "2011"] },
+        { "name": "My Vick is Itchy",        "years": ["2012", "2013"] },
+        { "name": "Dez-ed and Confused",     "years": ["2014", "2015", "2016", "2017", "2018", "2019", "2020", "2021", "2022", "2023", "2024"] },
+        { "name": "Bijan Mustard",           "years": ["2025"] }
+      ]
+    },
+    {
+      "id": "wes",
+      "name": "Wes",
+      "core": true,
+      "_note": "ndamukong suh dude!! (2016) and Hangin' w/ Hernandez (2017) are Wes — confirmed via 2016-17 managers file.",
+      "teams": [
+        { "name": "Romosexuals",                 "years": ["2011", "2012"] },
+        { "name": "Romophobic",                  "years": ["2013", "2014", "2015"] },
+        { "name": "ndamukong suh dude!!",         "years": ["2016"] },
+        { "name": "Hangin' w/ Hernandez",        "years": ["2017"] },
+        { "name": "The Spoiler",                 "years": ["2018", "2019"] },
+        { "name": "The Spoiled",                 "years": ["2020"] },
+        { "name": "There's Tua Much Shit On Me", "years": ["2021"] },
+        { "name": "Stable of Stars",             "years": ["2022"] }
+      ]
+    },
+    {
+      "id": "joseph",
+      "name": "Joseph",
+      "core": false,
+      "_note": "Schweddy Ballers is Joseph NOT Joe — confirmed via 2016-17 managers file. Won the 2016 championship.",
+      "teams": [
+        { "name": "Konys Child Soldiers", "years": ["2012"] },
+        { "name": "Joe's Neckbeards",     "years": ["2013", "2014"] },
+        { "name": "Schweddy Ballers",     "years": ["2015", "2016", "2017"] }
+      ]
+    },
+    {
+      "id": "evan",
+      "name": "Evan",
+      "core": false,
+      "_note": "2 Gurleys 1 Cup (2016) and Sergio Dipp (2017+) are Evan — confirmed via 2016-17 managers file.",
+      "teams": [
+        { "name": "2 Gurleys 1 Cup", "years": ["2016"] },
+        { "name": "Sergio Dipp",     "years": ["2017", "2018", "2019", "2020", "2021", "2022"] }
+      ]
+    },
+    {
+      "id": "jeff",
+      "name": "Jeff",
+      "core": false,
+      "teams": [
+        { "name": "17-7 Suck it!",    "years": ["2009"] },
+        { "name": "CraigersCrew",     "years": ["2010"] },
+        { "name": "A Kolb Day in Hell","years": ["2011"] },
+        { "name": "SEC SPEEEEEEEED",  "years": ["2012"] },
+        { "name": "Long Live Jerrrah","years": ["2013"] }
+      ]
+    },
+    {
+      "id": "jr",
+      "name": "JR",
+      "core": false,
+      "teams": [
+        { "name": "Donkey Punch", "years": ["2009"] }
+      ]
+    },
+    {
+      "id": "travis",
+      "name": "Travis",
+      "core": false,
+      "teams": [
+        { "name": "The T.O. Show",    "years": ["2009"] },
+        { "name": "Suckin' Daddy's D","years": ["2010"] }
+      ]
+    },
+    {
+      "id": "gary",
+      "name": "Gary",
+      "core": false,
+      "_note": "LAPORTA PARTY (2023) confirmed as Gary, not Garrett.",
+      "teams": [
+        { "name": "LAPORTA PARTY", "years": ["2023"] }
+      ]
+    },
+    {
+      "id": "jeremy",
+      "name": "Jeremy",
+      "core": false,
+      "_note": "Jerry had a lil Lamb (2021) confirmed as Jeremy, not Ryan or Josh.",
+      "teams": [
+        { "name": "Jerry had a lil Lamb",          "years": ["2021"] },
+        { "name": "Jeremy's Dazzling Team",         "years": ["2023"] },
+        { "name": "Not Worthy. My Pickens Hurts",   "years": ["2024"] },
+        { "name": "Chase'n Jayden",                 "years": ["2025"] }
+      ]
+    },
+    {
+      "id": "garrett",
+      "name": "Garrett",
+      "core": false,
+      "teams": [
+        { "name": "Çöôpèr's Pòõpēr's ẞçøøpërs", "years": ["2024"] },
+        { "name": "Egbuka's Brown Burrow",         "years": ["2025"] }
+      ]
+    },
+    {
+      "id": "unknown_1",
+      "name": "Unknown",
+      "core": false,
+      "_note": "TODO: confirm with league members who managed these teams.",
+      "teams": [
+        { "name": "Joe Montainya",      "years": ["2013"], "_note": "Unknown — possibly Joseph or a one-year participant" },
+        { "name": "My Team is Terrible","years": ["2012"], "_note": "Unknown — 3-9 record, 13th place" },
+        { "name": "Suck My C.Johnson",  "years": ["2010"], "_note": "Unknown — strong season, finished 5th (10-3)" },
+        { "name": "ishyaCOWboy",        "years": ["2010"], "_note": "Unknown — finished 10th (4-9)" }
+      ]
+    }
+  ]
+}

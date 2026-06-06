@@ -39,44 +39,63 @@ const MGR_COLORS = {
   'Chris': '#F0B27A',   'Wes': '#A9DFBF',
 };
 
-// Complete team name → manager mapping (corrected with 2016-17 file)
-const TEAM_TO_MANAGER = {
-  // Chris T
-  'Dad Bod Squad':'Chris T',"Dad Bod's Squad":'Chris T','Taste Dwayne Bowe':'Chris T',
-  'McCluster Fucks':'Chris T','Chiefs':'Chris T','Country Roads Take Mahomes':'Chris T',
-  // Ryan
-  'Balls deep':'Ryan','CTown OGs':'Ryan','LAPORTA PARTY':'Ryan',
-  'Jerry had a lil Lamb':'Ryan','Jerry had a little lamb':'Ryan',
-  // Nels
-  "Nelson's Man-Dillas":'Nels',"Seattle Scgreat's":'Nels','Bi - Flynning':'Nels',
-  "Nels's Nancies":'Nels',
-  // Jack
-  'Mitha Rodgas Neybhud':'Jack',
-  // Josh
-  'Off Constantly':'Josh',"Jerry's Fairies":'Josh','Lamb and tuna fish':'Josh',
-  "My Dick(er) Reeks":'Josh',
-  // Mike
-  'Bills Mafia':'Mike','Paradox':'Mike','Shmeeper Bowl Champs':'Mike','Jerryworld':'Mike',
-  // Bryson
-  'Fuuck Stan Kroenke':'Bryson','KingLaurinaitis55':'Bryson','Im the real Greenie':'Bryson',
-  // matt — CORRECTED: Petersons and BrySons were matt, not Bryson
-  'Simmons is old!':'matt','Petersons of Anarchy':'matt','BrySons of Anarchy':'matt',
-  '1st Down Syndrome':'matt','scute without the e':'matt','Discount Dbl Gut Chk':'matt',
-  'My Chubb Hurts':'matt',
-  // T Rex
-  'Pity I wasnt invited':'T Rex','Golden Tate Showers':'T Rex','CItron My Face':'T Rex','The Dude.':'T Rex',
-  // Chris
-  'Dez-ed and Confused':'Chris','Bijan Mustard':'Chris',
-  // Wes — CORRECTED: ndamukong and Hangin were Wes, not Mike/Chris
-  'ndamukong suh dude!!':'Wes',"Hangin' w/ Hernandez":'Wes','Romophobic':'Wes','Stable of Stars':'Wes',
-  // Joseph — CORRECTED: Schweddy Ballers was Joseph not Joe
-  'Schweddy Ballers':'Joseph',"Konys Child Soldiers":'Joseph',
-  // Evan — CORRECTED
-  '2 Gurleys 1 Cup':'Evan','Sergio Dipp':'Evan',
-  // Others
-  'Donkey Punch':'JR',"Suckin' Daddy's D":'Travis','The T.O. Show':'Travis',
-  "Egbuka's Brown Burrow":'Garrett',"Chase'n Jayden":'Jeremy',
-};
+// ─── TEAM → MANAGER MAPPING ────────────────────────────────────────────────
+// Loaded from managers.json at runtime. Do NOT edit here — edit managers.json.
+// Falls back to inline map if managers.json hasn't loaded yet.
+
+let TEAM_TO_MANAGER = {};  // populated by loadManagers()
+
+async function loadManagers() {
+  try {
+    const res = await fetch('managers.json');
+    if (!res.ok) throw new Error('managers.json not found');
+    const data = await res.json();
+    // Build flat team→manager lookup from the structured JSON
+    for (const mgr of data.managers) {
+      for (const entry of mgr.teams) {
+        // Skip unresolved unknowns that share the 'Unknown' manager bucket
+        const mgrName = mgr.name === 'Unknown' ? null : mgr.name;
+        if (mgrName) TEAM_TO_MANAGER[entry.name] = mgrName;
+      }
+    }
+    console.log(`managers.json loaded — ${Object.keys(TEAM_TO_MANAGER).length} team mappings`);
+  } catch (err) {
+    console.warn('Could not load managers.json, using inline fallback:', err.message);
+    // Inline fallback — mirrors managers.json exactly
+    TEAM_TO_MANAGER = {
+      'Dad Bod Squad':'Chris T',"Dad Bod's Squad":'Chris T','Taste Dwayne Bowe':'Chris T',
+      'McCluster Fucks':'Chris T','Chiefs':'Chris T','Country Roads Take Mahomes':'Chris T',
+      'Balls deep':'Ryan','CTown OGs':'Ryan',
+      "Nelson's Man-Dillas":'Nels',"Seattle Scgreat's":'Nels','Bi - Flynning':'Nels',"Nels's Nancies":'Nels',
+      'Mitha Rodgas Neybhud':'Jack',
+      'Off Constantly':'Josh',"Jerry's Fairies":'Josh','Lamb and tuna fish':'Josh',"My Dick(er) Reeks":'Josh',
+      'Suck My Cotchery':'Josh','My Chubb Hurts':'Josh','Turn ur head and Goff':'Josh',
+      'Bills Mafia':'Mike','Paradox':'Mike','Shmeeper Bowl Champs':'Mike','Jerryworld':'Mike',
+      'CARRY MY PADS BITCH':'Mike','Tony Romo':'Mike','FAT FUCKING FAGGLES':'Mike',
+      'Fuuck Stan Kroenke':'Bryson','KingLaurinaitis55':'Bryson','Im the real Greenie':'Bryson',
+      'Bros_B4_Shiancoes':'Bryson','pooooooooop':'Bryson','CowboyButtsAreGay':'Bryson',
+      'Simmons is old!':'matt','Petersons of Anarchy':'matt','BrySons of Anarchy':'matt',
+      '1st Down Syndrome':'matt','scute without the e':'matt','Discount Dbl Gut Chk':'matt',
+      "Jerry's Gloryholes":'matt','Titsburgh Feelers':'matt',
+      'Pity I wasnt invited':'T Rex','Golden Tate Showers':'T Rex','CItron My Face':'T Rex',
+      'The Dude.':'T Rex','Hernandez Legal Team':'T Rex','Wherefore & Therein':'T Rex',
+      'Dez-ed and Confused':'Chris','Bijan Mustard':'Chris','The Dirty Sanchez':'Chris',
+      "TD's N' Beer":'Chris','My Vick is Itchy':'Chris',
+      'ndamukong suh dude!!':'Wes',"Hangin' w/ Hernandez":'Wes','Romophobic':'Wes',
+      'Stable of Stars':'Wes','Romosexuals':'Wes','The Spoiler':'Wes','The Spoiled':'Wes',
+      "There's Tua Much Shit On Me":'Wes',
+      'Schweddy Ballers':'Joseph',"Konys Child Soldiers":'Joseph',"Joe's Neckbeards":'Joseph',
+      '2 Gurleys 1 Cup':'Evan','Sergio Dipp':'Evan',
+      'Donkey Punch':'JR',"Suckin' Daddy's D":'Travis','The T.O. Show':'Travis',
+      "Egbuka's Brown Burrow":'Garrett',"Çöôpèr's Pòõpēr's ẞçøøpërs":'Garrett',
+      "Chase'n Jayden":'Jeremy','Jerry had a lil Lamb':'Jeremy',
+      "Jeremy's Dazzling Team":'Jeremy','Not Worthy. My Pickens Hurts':'Jeremy',
+      'LAPORTA PARTY':'Gary',
+      '17-7 Suck it!':'Jeff','CraigersCrew':'Jeff','A Kolb Day in Hell':'Jeff',
+      'SEC SPEEEEEEEED':'Jeff','Long Live Jerrrah':'Jeff',
+    };
+  }
+}
 
 function resolveManager(managerField, teamName) {
   if (managerField && managerField !== '--hidden--') return managerField;

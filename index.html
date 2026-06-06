@@ -1242,6 +1242,8 @@ function updateH2H() {
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 async function boot() {
   try {
+    // Load managers.json first, then fantasy data
+    await loadManagers();
     const res = await fetch('fantasy_data.json');
     if (!res.ok) throw new Error('Failed to load fantasy_data.json');
     const rawData = await res.json();
