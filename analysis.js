@@ -475,6 +475,12 @@ function runAnalysis(rawData) {
   };
 }
 
+// ─── NOTES ON STATIC DATA ───────────────────────────────────────────────────
+// Most Lopsided Trades: ranked by VOR differential, not raw points.
+//   VOR accounts for positional scarcity (an RB at 200pts > QB at 200pts).
+//   tradeLopsided in index.html contains the VOR-based rankings.
+//   To recalculate, run the Python analysis script and look for get_vor() output.
+//
 // ─── STATIC AUCTION DRAFT DATA (from AuctionValues.xlsx) ───────────────────
 // Auction salary data lives outside fantasy_data.json so is embedded here.
 // Update this block when running a new auction season.
