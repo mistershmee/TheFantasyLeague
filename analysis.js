@@ -32,6 +32,8 @@ const PI_CAREER_BONUS = { title: 2, playoff: 1 };
 // No core/past distinction. Use ALL_MANAGERS everywhere.
 let ALL_MANAGERS = [];
 
+const MGR_LAST_ACTIVE = {};  // populated from managers.json at load time
+
 const MGR_COLORS = {
   'Chris T': '#6C63FF', 'Ryan': '#FF6B6B', 'Nels': '#4ECDC4',
   'Mike': '#45B7D1',    'Jack': '#FFA07A', 'Josh': '#98D8C8',
