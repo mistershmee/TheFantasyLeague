@@ -78,6 +78,7 @@ async function loadManagers() {
       }
     }
     console.log(`managers.json loaded — ${Object.keys(TEAM_TO_MANAGER).length} team mappings, ${Object.keys(API_TO_DISPLAY).length} API name mappings`);
+    return data;  // return parsed data so caller can build CORE/ALL_MGRS
   } catch (err) {
     console.warn('Could not load managers.json, using inline fallback:', err.message);
     // Inline fallback — mirrors managers.json exactly
@@ -120,6 +121,7 @@ async function loadManagers() {
       'Jeff':'Jeff','Travis':'Travis','JR':'JR',
       'matt':'Matt','T Rex':'Taylor','Chris':'Chris B','Garrett':'Gary','Jeremy':'Murph',
     };
+    return null;  // signal to caller that managers.json wasn't available
   }
 }
 

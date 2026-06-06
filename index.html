@@ -721,9 +721,9 @@ let A; // analysis results
 let draftFormat = 'all', draftPos = 'all', evoPos = 'all', h2hMode = 'total';
 let mgrSort = { col: 'winPct', asc: false };
 let piSort  = { col: 'finalPI', asc: false };
-const CORE = ['Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes'];
-const ALL_MGRS = ['Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes',
-                  'Joseph','Evan','Jeff','Travis','JR','Gary','Murph'];
+// Populated from managers.json at boot — do not hardcode here
+let CORE = [];
+let ALL_MGRS = [];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const $  = id => document.getElementById(id);
@@ -1244,8 +1244,17 @@ function updateH2H() {
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 async function boot() {
   try {
-    // Load managers.json first, then fantasy data
-    await loadManagers();
+    // Load managers.json first — populates TEAM_TO_MANAGER and API_TO_DISPLAY
+    const managersData = await loadManagers();
+    // Build CORE and ALL_MGRS dynamically from managers.json
+    if (managersData) {
+      CORE    = managersData.managers.filter(m => m.core && m.name !== 'Unknown').map(m => m.name);
+      ALL_MGRS= managersData.managers.filter(m => m.name !== 'Unknown').map(m => m.name);
+    } else {
+      // Fallback if managers.json failed to load
+      CORE     = ['Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes'];
+      ALL_MGRS = [...CORE,'Joseph','Evan','Jeff','Travis','JR','Gary','Murph'];
+    }
     const res = await fetch('fantasy_data.json');
     if (!res.ok) throw new Error('Failed to load fantasy_data.json');
     const rawData = await res.json();
