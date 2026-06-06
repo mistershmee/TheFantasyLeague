@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Fantasy League — Historical Statistics</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Inter+Tight:wght@500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="analysis.js"></script>
 <style>
@@ -24,9 +24,9 @@
   --gold: #FFD700;
   --red: #FF6B6B;
   --green: #4ECDC4;
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-body: 'DM Sans', sans-serif;
-  --font-mono: 'DM Mono', monospace;
+  --font-display: 'Inter Tight', 'Inter', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'Inter', monospace;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -37,7 +37,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   position: fixed; inset: 0; background: var(--bg); z-index: 1000;
   display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 16px;
 }
-.loader-title { font-family: var(--font-display); font-size: 48px; letter-spacing: 4px; color: var(--accent); }
+.loader-title { font-family: var(--font-display); font-size: 48px; font-weight: 700; letter-spacing: -1px; color: var(--accent); }
 .loader-sub { color: var(--text2); font-size: 14px; }
 .loader-bar { width: 200px; height: 2px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-top: 8px; }
 .loader-fill { height: 100%; background: var(--accent); animation: loadpulse 1.2s ease-in-out infinite; }
@@ -52,12 +52,12 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   backdrop-filter: blur(20px);
 }
 .hdr-top { display: flex; align-items: flex-end; gap: 20px; margin-bottom: 24px; }
-.hdr-title { font-family: var(--font-display); font-size: 42px; letter-spacing: 3px; color: var(--text); line-height: 1; }
+.hdr-title { font-family: var(--font-display); font-size: 36px; font-weight: 700; letter-spacing: -0.5px; color: var(--text); line-height: 1; }
 .hdr-title span { color: #ffffff; }
 .hdr-meta { color: var(--text3); font-size: 12px; font-family: var(--font-mono); padding-bottom: 6px; }
 .hdr-stats { display: flex; gap: 32px; padding-bottom: 0; }
 .hdr-stat { text-align: center; }
-.hdr-stat-val { font-family: var(--font-display); font-size: 24px; color: #ffffff; letter-spacing: 1px; }
+.hdr-stat-val { font-family: var(--font-display); font-size: 24px; font-weight: 700; color: #ffffff; letter-spacing: -0.5px; }
 .hdr-stat-lbl { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
 
 /* ── TABS ── */
@@ -67,7 +67,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
   padding: 14px 20px; font-size: 12px; cursor: pointer;
   color: var(--text3); border-bottom: 2px solid transparent;
   white-space: nowrap; transition: all .2s; text-transform: uppercase;
-  letter-spacing: 1px; font-weight: 600;
+  letter-spacing: 0.5px; font-weight: 600;
 }
 .tab:hover { color: var(--text2); }
 .tab.on { color: #ffffff; border-bottom-color: #ffffff; }
@@ -93,17 +93,17 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 }
 .card:hover { border-color: var(--border2); }
 .card-title {
-  font-size: 13px; text-transform: uppercase; letter-spacing: 1.5px;
+  font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
   color: #ffffff; font-weight: 600; margin-bottom: 16px;
 }
-.card-title.lg { font-family: var(--font-display); font-size: 18px; letter-spacing: 2px; color: var(--text); text-transform: uppercase; margin-bottom: 12px; }
+.card-title.lg { font-family: var(--font-display); font-size: 18px; font-weight: 700; letter-spacing: 0px; color: var(--text); text-transform: uppercase; margin-bottom: 12px; }
 
 /* ── METRIC TILES ── */
 .metric {
   background: var(--bg2); border: 1px solid var(--border);
   border-radius: 10px; padding: 16px 20px;
 }
-.metric-val { font-family: var(--font-display); font-size: 32px; color: var(--accent); letter-spacing: 1px; line-height: 1; }
+.metric-val { font-family: var(--font-display); font-size: 32px; font-weight: 700; color: var(--accent); letter-spacing: -1px; line-height: 1; }
 .metric-lbl { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
 .metric-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
 
@@ -217,7 +217,7 @@ body { background: var(--bg); color: var(--text); font-family: var(--font-body);
 /* ── H2H RESULT ── */
 .h2h-result { display: flex; gap: 24px; align-items: center; flex-wrap: wrap; padding: 16px 0; }
 .h2h-side { text-align: center; }
-.h2h-wins { font-family: var(--font-display); font-size: 48px; letter-spacing: 2px; color: var(--text); line-height: 1; }
+.h2h-wins { font-family: var(--font-display); font-size: 48px; font-weight: 700; letter-spacing: -2px; color: var(--text); line-height: 1; }
 .h2h-name { font-size: 11px; color: var(--text3); margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; }
 .h2h-mid { flex: 1; text-align: center; }
 .h2h-total { font-size: 11px; color: var(--text3); margin-bottom: 8px; font-family: var(--font-mono); }
@@ -1165,7 +1165,7 @@ function renderPICareer() {
     <td><span class="bdg bdg-pos">+${r.titleBonus}</span></td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${r.playoffApps}</td>
     <td><span class="bdg bdg-blue">+${r.playoffBonus}</span></td>
-    <td><strong style="font-family:var(--font-display);font-size:16px;letter-spacing:1px;color:${A.mgrColors[r.m]||'var(--accent)'}">${r.finalPI}</strong></td>
+    <td><strong style="font-family:var(--font-display);font-size:16px;font-weight:700;letter-spacing:-0.5px;color:${A.mgrColors[r.m]||'var(--accent)'}">${r.finalPI}</strong></td>
   </tr>`).join('');
 }
 function sortPI(col) {
