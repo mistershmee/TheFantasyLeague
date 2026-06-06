@@ -6,7 +6,7 @@
 
 ---
 
-## Core Managers (all-time)
+## Managers
 
 ### Chris T
 | Year | Team Name |
@@ -145,8 +145,6 @@
 | 2022 | Stable of Stars |
 
 ---
-
-## Non-Core / Past Managers
 
 ### Joseph
 > ⚠️ **Schweddy Ballers is Joseph, NOT Joe.** Won the 2016 championship.

@@ -9,7 +9,7 @@
  *   LINEUP            — starting lineup configuration
  *   PI_WEIGHTS        — Power Index formula weights
  *   PI_CAREER_BONUS   — title/playoff bonus values for Career PI
- *   CORE_MANAGERS     — which managers to include in core analysis
+ *   ALL_MANAGERS     — which managers to include in core analysis
  */
 
 // ─── PARAMETERS ────────────────────────────────────────────────────────────
@@ -28,15 +28,9 @@ const REPL_RANK = {
 const PI_WEIGHTS = { scoring: 0.85, consistency: 0.15 };
 const PI_CAREER_BONUS = { title: 2, playoff: 1 };
 
-const CORE_MANAGERS = [
-  'Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes'
-];
-
-// All managers ever — used for tables that show full history
-const ALL_MANAGERS = [
-  'Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes',
-  'Joseph','Evan','Jeff','Travis','JR','Gary','Murph',
-];
+// All managers — populated dynamically from managers.json at load time.
+// No core/past distinction. Use ALL_MANAGERS everywhere.
+let ALL_MANAGERS = [];
 
 const MGR_COLORS = {
   'Chris T': '#6C63FF', 'Ryan': '#FF6B6B', 'Nels': '#4ECDC4',
@@ -77,8 +71,20 @@ async function loadManagers() {
         TEAM_TO_MANAGER[entry.name] = displayName;
       }
     }
-    console.log(`managers.json loaded — ${Object.keys(TEAM_TO_MANAGER).length} team mappings, ${Object.keys(API_TO_DISPLAY).length} API name mappings`);
-    return data;  // return parsed data so caller can build CORE/ALL_MGRS
+    // Build ALL_MANAGERS list (excluding Unknown) preserving managers.json order
+    ALL_MANAGERS = data.managers
+      .filter(m => m.name !== 'Unknown')
+      .map(m => m.name);
+
+    // Build last_active lookup
+    for (const mgr of data.managers) {
+      if (mgr.name === 'Unknown') continue;
+      const years = mgr.teams.flatMap(t => t.years);
+      MGR_LAST_ACTIVE[mgr.name] = years.length ? Math.max(...years.map(Number)).toString() : '—';
+    }
+
+    console.log(`managers.json loaded — ${ALL_MANAGERS.length} managers, ${Object.keys(TEAM_TO_MANAGER).length} team mappings`);
+    return data;
   } catch (err) {
     console.warn('Could not load managers.json, using inline fallback:', err.message);
     // Inline fallback — mirrors managers.json exactly
@@ -121,7 +127,20 @@ async function loadManagers() {
       'Jeff':'Jeff','Travis':'Travis','JR':'JR',
       'matt':'Matt','T Rex':'Taylor','Chris':'Chris B','Garrett':'Gary','Jeremy':'Murph',
     };
-    return null;  // signal to caller that managers.json wasn't available
+    // Fallback ALL_MANAGERS list
+    ALL_MANAGERS = [
+      'Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes',
+      'Joseph','Evan','Jeff','Travis','JR','Gary','Murph',
+    ];
+    // Fallback last active years
+    const fallbackLast = {
+      'Chris T':'2025','Ryan':'2025','Nels':'2025','Mike':'2025','Jack':'2025',
+      'Josh':'2025','Bryson':'2025','Matt':'2025','Taylor':'2025','Chris B':'2025',
+      'Wes':'2022','Joseph':'2017','Evan':'2022','Jeff':'2013','Travis':'2010',
+      'JR':'2009','Gary':'2025','Murph':'2025',
+    };
+    Object.assign(MGR_LAST_ACTIVE, fallbackLast);
+    return null;
   }
 }
 
@@ -213,7 +232,7 @@ function runAnalysis(rawData) {
 
   // ── MANAGER STATS ────────────────────────────────────────────
   const mgrData = {};
-  for (const mgr of CORE_MANAGERS) {
+  for (const mgr of ALL_MANAGERS) {
     mgrData[mgr] = { seasons: new Set(), wins: 0, losses: 0, ptsFor: 0, ppgGames: 0,
       titles: 0, podiums: 0, playoffApps: 0, playoffW: 0, playoffL: 0 };
   }
@@ -280,7 +299,7 @@ function runAnalysis(rawData) {
 
   // ── LUCK INDEX ───────────────────────────────────────────────
   const luckCareer = {};
-  for (const mgr of CORE_MANAGERS) luckCareer[mgr] = { actual: 0, expected: 0 };
+  for (const mgr of ALL_MANAGERS) luckCareer[mgr] = { actual: 0, expected: 0 };
   const luckSeasons = [];
 
   for (const year of years) {
@@ -320,7 +339,7 @@ function runAnalysis(rawData) {
     for (const m of seasons[year].matchups || []) {
       const m1 = resolveManager(m.team1_manager, m.team1_name);
       const m2 = resolveManager(m.team2_manager, m.team2_name);
-      if (!CORE_MANAGERS.includes(m1) || !CORE_MANAGERS.includes(m2) || m1 === m2) continue;
+      if (!ALL_MANAGERS.includes(m1) || !ALL_MANAGERS.includes(m2) || m1 === m2) continue;
       const isPO = m.is_playoffs && !m.is_consolation;
       if (!h2h[m1]) h2h[m1] = {};
       if (!h2h[m1][m2]) h2h[m1][m2] = { reg_w: 0, reg_l: 0, po_w: 0, po_l: 0 };
@@ -338,7 +357,7 @@ function runAnalysis(rawData) {
   const SNAKE_YEARS = new Set(['2009','2010','2011','2012','2013','2015','2017','2021','2023','2025']);
   const AUCTION_YEARS_SET = new Set(['2016','2018','2020','2022','2024']);
   const mgrPosVOR = {};
-  for (const mgr of CORE_MANAGERS) mgrPosVOR[mgr] = {};
+  for (const mgr of ALL_MANAGERS) mgrPosVOR[mgr] = {};
 
   const snakeDrafts = [];
   for (const year of [...SNAKE_YEARS].sort()) {
@@ -450,7 +469,7 @@ function runAnalysis(rawData) {
 
   // ── TRADE VOR DIFF ──────────────────────────────────────────
   const tradeVOR = {};
-  for (const mgr of CORE_MANAGERS) tradeVOR[mgr] = { vorRecv: 0, vorGiven: 0, trades: 0 };
+  for (const mgr of ALL_MANAGERS) tradeVOR[mgr] = { vorRecv: 0, vorGiven: 0, trades: 0 };
 
   for (const year of years) {
     for (const txn of seasons[year].transactions || []) {
@@ -489,7 +508,7 @@ function runAnalysis(rawData) {
   // ── WAIVER ACTIVITY ──────────────────────────────────────────
   const waiverByMgrYear = {};
   const waiverPosByMgr = {};
-  for (const mgr of CORE_MANAGERS) { waiverByMgrYear[mgr] = {}; waiverPosByMgr[mgr] = {}; }
+  for (const mgr of ALL_MANAGERS) { waiverByMgrYear[mgr] = {}; waiverPosByMgr[mgr] = {}; }
 
   for (const year of years) {
     const standings = seasons[year].standings || [];
@@ -521,7 +540,7 @@ function runAnalysis(rawData) {
     champions, ppw, managerStats, luckCareer, luckSeasons,
     h2h, snakeDrafts, auctionDrafts, avgVORByPos,
     seasonPI, careerPI, tradeDiff, waiverCareer,
-    replLevel, mgrColors: MGR_COLORS,
+    replLevel, mgrColors: MGR_COLORS, lastActive: MGR_LAST_ACTIVE,
   };
 }
 
@@ -555,4 +574,4 @@ const AUCTION_DRAFT_DATA = [
 ];
 
 // Export for use in dashboard
-if (typeof module !== 'undefined') module.exports = { runAnalysis, TEAM_TO_MANAGER, CORE_MANAGERS, MGR_COLORS, AUCTION_DRAFT_DATA };
+if (typeof module !== 'undefined') module.exports = { runAnalysis, TEAM_TO_MANAGER, ALL_MANAGERS, MGR_COLORS, AUCTION_DRAFT_DATA };

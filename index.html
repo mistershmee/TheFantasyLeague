@@ -722,7 +722,6 @@ let draftFormat = 'all', draftPos = 'all', evoPos = 'all', h2hMode = 'total';
 let mgrSort = { col: 'winPct', asc: false };
 let piSort  = { col: 'finalPI', asc: false };
 // Populated from managers.json at boot — do not hardcode here
-let CORE = [];
 let ALL_MGRS = [];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -823,18 +822,19 @@ function buildHome() {
 
 // ─── MANAGERS ─────────────────────────────────────────────────────────────────
 const MGR_HEADERS = [
-  { k:'name',  label:'Manager',     num:false },
-  { k:'seasons',label:'Seasons',    num:true  },
-  { k:'wins',  label:'W',           num:true  },
-  { k:'losses',label:'L',           num:true  },
-  { k:'winPct',label:'Win%',        num:true  },
-  { k:'ppg',   label:'Pts/gm',      num:true  },
-  { k:'titles',label:'Titles',      num:true  },
-  { k:'podiums',label:'Podiums',    num:true  },
-  { k:'playoffApps',label:'PO Apps',num:true  },
-  { k:'playoffW',label:'PO W',      num:true  },
-  { k:'playoffL',label:'PO L',      num:true  },
-  { k:'playoffWinPct',label:'PO Win%',num:true},
+  { k:'name',       label:'Manager',    num:false },
+  { k:'lastActive', label:'Last Active',num:true  },
+  { k:'seasons',    label:'Seasons',    num:true  },
+  { k:'wins',       label:'W',          num:true  },
+  { k:'losses',     label:'L',          num:true  },
+  { k:'winPct',     label:'Win%',       num:true  },
+  { k:'ppg',        label:'Pts/gm',     num:true  },
+  { k:'titles',     label:'Titles',     num:true  },
+  { k:'podiums',    label:'Podiums',    num:true  },
+  { k:'playoffApps',label:'PO Apps',    num:true  },
+  { k:'playoffW',   label:'PO W',       num:true  },
+  { k:'playoffL',   label:'PO L',       num:true  },
+  { k:'playoffWinPct',label:'PO Win%',  num:true  },
 ];
 
 function buildMgr() {
@@ -842,7 +842,11 @@ function buildMgr() {
     `<th onclick="sortMgr('${h.k}')" class="${mgrSort.col===h.k?'sorted':''}">${h.label}<span class="arr">${mgrSort.col===h.k?(mgrSort.asc?'▲':'▼'):'⇅'}</span></th>`
   ).join('');
 
-  const rows = ALL_MGRS.map(mgr => ({ name: mgr, ...A.managerStats[mgr] })).filter(r => r && r.seasons);
+  const rows = ALL_MGRS.map(mgr => ({
+    name: mgr,
+    lastActive: A.lastActive?.[mgr] || '—',
+    ...A.managerStats[mgr]
+  })).filter(r => r && r.seasons);
   rows.sort((a,b) => {
     const va = a[mgrSort.col], vb = b[mgrSort.col];
     if (typeof va === 'string') return mgrSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
@@ -852,6 +856,7 @@ function buildMgr() {
 
   $('mgr-tb').innerHTML = rows.map(r => `<tr>
     <td>${mgrDot(r.name)}<strong>${r.name}</strong></td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${r.lastActive || '—'}</td>
     <td>${r.seasons}</td>
     <td>${r.wins}</td>
     <td>${r.losses}</td>
@@ -1105,10 +1110,15 @@ function buildEvo() { renderEvo(); }
 
 // ─── POWER INDEX ──────────────────────────────────────────────────────────────
 const PI_CAREER_HEADERS = [
-  {k:'m',label:'Manager',num:false},{k:'seasons',label:'Seasons',num:true},
-  {k:'avgPI',label:'Avg PI',num:true},{k:'titles',label:'Titles',num:true},
-  {k:'titleBonus',label:'Title Bonus',num:true},{k:'playoffApps',label:'PO Apps',num:true},
-  {k:'playoffBonus',label:'PO Bonus',num:true},{k:'finalPI',label:'Career PI',num:true},
+  {k:'m',           label:'Manager',     num:false},
+  {k:'lastActive',  label:'Last Active', num:true },
+  {k:'seasons',     label:'Seasons',     num:true },
+  {k:'avgPI',       label:'Avg PI',      num:true },
+  {k:'titles',      label:'Titles',      num:true },
+  {k:'titleBonus',  label:'Title Bonus', num:true },
+  {k:'playoffApps', label:'PO Apps',     num:true },
+  {k:'playoffBonus',label:'PO Bonus',    num:true },
+  {k:'finalPI',     label:'Career PI',   num:true },
 ];
 
 function buildPower() {
@@ -1138,7 +1148,7 @@ function renderPICareer() {
   ).join('');
 
   const rows = Object.entries(A.careerPI)
-    .map(([m, s]) => ({ m, ...s }))
+    .map(([m, s]) => ({ m, lastActive: A.lastActive?.[m] || '—', ...s }))
     .filter(r => ALL_MGRS.includes(r.m))
     .sort((a,b) => {
       const va = a[piSort.col], vb = b[piSort.col];
@@ -1148,6 +1158,7 @@ function renderPICareer() {
 
   $('pi-career-tb').innerHTML = rows.map(r => `<tr>
     <td>${mgrDot(r.m)}<strong>${r.m}</strong></td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${r.lastActive || '—'}</td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${r.seasons}</td>
     <td style="font-family:var(--font-mono)">${r.avgPI}</td>
     <td>${r.titles > 0 ? `<span class="bdg bdg-gold">${r.titles}</span>` : '—'}</td>
@@ -1246,15 +1257,9 @@ async function boot() {
   try {
     // Load managers.json first — populates TEAM_TO_MANAGER and API_TO_DISPLAY
     const managersData = await loadManagers();
-    // Build CORE and ALL_MGRS dynamically from managers.json
-    if (managersData) {
-      CORE    = managersData.managers.filter(m => m.core && m.name !== 'Unknown').map(m => m.name);
-      ALL_MGRS= managersData.managers.filter(m => m.name !== 'Unknown').map(m => m.name);
-    } else {
-      // Fallback if managers.json failed to load
-      CORE     = ['Chris T','Ryan','Nels','Mike','Jack','Josh','Bryson','Matt','Taylor','Chris B','Wes'];
-      ALL_MGRS = [...CORE,'Joseph','Evan','Jeff','Travis','JR','Gary','Murph'];
-    }
+    // Build ALL_MGRS and ALL_MGRS dynamically from managers.json
+    // ALL_MGRS is built inside loadManagers() / analysis.js — sync it here
+    ALL_MGRS = ALL_MANAGERS;  // ALL_MANAGERS is the analysis.js global
     const res = await fetch('fantasy_data.json');
     if (!res.ok) throw new Error('Failed to load fantasy_data.json');
     const rawData = await res.json();
