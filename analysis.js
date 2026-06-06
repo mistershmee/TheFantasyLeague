@@ -30,11 +30,11 @@ const PI_CAREER_BONUS = { title: 2, playoff: 1 };
 
 // All managers — populated dynamically from managers.json at load time.
 // No core/past distinction. Use ALL_MANAGERS everywhere.
-let ALL_MANAGERS = [];
+var ALL_MANAGERS = [];
 
-const MGR_LAST_ACTIVE = {};  // populated from managers.json at load time
+var MGR_LAST_ACTIVE = {};  // populated from managers.json at load time
 
-const MGR_COLORS = {
+var MGR_COLORS = {
   'Chris T': '#6C63FF', 'Ryan': '#FF6B6B', 'Nels': '#4ECDC4',
   'Mike': '#45B7D1',    'Jack': '#FFA07A', 'Josh': '#98D8C8',
   'Bryson': '#F7DC6F',  'Matt': '#BB8FCE', 'Taylor': '#85C1E9',
@@ -49,10 +49,10 @@ const MGR_COLORS = {
 // Loaded from managers.json at runtime. Do NOT edit here — edit managers.json.
 // Falls back to inline map if managers.json hasn't loaded yet.
 
-let TEAM_TO_MANAGER = {};  // populated by loadManagers()
+var TEAM_TO_MANAGER = {};  // populated by loadManagers()
 
 // Maps API manager_field strings to display names (e.g. 'T Rex' → 'Taylor')
-let API_TO_DISPLAY = {};
+var API_TO_DISPLAY = {};
 
 async function loadManagers() {
   try {
