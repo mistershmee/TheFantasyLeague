@@ -85,10 +85,8 @@
 
 ---
 
-### matt
-> ⚠️ Lowercase "matt" — correct spelling.  
-> **BrySons of Anarchy (2017) and Petersons of Anarchy (2016) are matt, NOT Bryson.**  
-> Confirmed via 2016–17 managers file.
+### Matt 
+> **BrySons of Anarchy (2017) and Petersons of Anarchy (2016) are Matt, NOT Bryson.**  
 
 | Year | Team Name |
 |------|-----------|
@@ -102,7 +100,7 @@
 
 ---
 
-### T Rex
+### Taylor
 | Year | Team Name |
 |------|-----------|
 | 2009 | *(not in league)* |
@@ -116,7 +114,7 @@
 
 ---
 
-### Chris
+### Chris B
 | Year | Team Name |
 |------|-----------|
 | 2009 | The Dirty Sanchez |
@@ -201,11 +199,12 @@
 | Year | Team Name |
 |------|-----------|
 | 2023 | LAPORTA PARTY |
-
+| 2024 | Çöôpèr's Pòõpēr's ẞçøøpërs |
+| 2025 | Egbuka's Brown Burrow |
 ---
 
-### Jeremy
-> ⚠️ **Jerry had a lil Lamb (2021) is Jeremy, NOT Ryan or Josh.**
+### Murph
+> ⚠️ **Jerry had a lil Lamb (2021) is Murph, NOT Ryan or Josh.**
 
 | Year | Team Name |
 |------|-----------|
@@ -213,14 +212,6 @@
 | 2023 | Jeremy's Dazzling Team |
 | 2024 | Not Worthy. My Pickens Hurts |
 | 2025 | Chase'n Jayden |
-
----
-
-### Garrett
-| Year | Team Name |
-|------|-----------|
-| 2024 | Çöôpèr's Pòõpēr's ẞçøøpërs |
-| 2025 | Egbuka's Brown Burrow |
 
 ---
 
@@ -257,7 +248,7 @@
 | Evan | 2016 | 2022 | 7 |
 | Travis | 2009 | 2010 | 2 |
 | JR | 2009 | 2009 | 1 |
-| Gary | 2023 | 2023 | 1 |
+| Gary | 2023 | 2025 | 3 |
 | Jeremy | 2021 | 2025 | 4 |
 | Garrett | 2024 | 2025 | 2 |
 
