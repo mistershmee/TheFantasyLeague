@@ -237,6 +237,7 @@ canvas { display: block; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
 
 /* ── RESPONSIVE ── */
+@media(max-width:680px){.recap-grid{grid-template-columns:1fr!important}}
 @media(max-width:768px){
   .hdr { padding: 20px 20px 0; }
   .pnl { padding: 20px; }
@@ -300,6 +301,18 @@ canvas { display: block; }
         <div style="position:relative;height:180px"><canvas id="ppwC"></canvas></div>
       </div>
     </div>
+  </div>
+
+  <!-- WEEKLY RECAP -->
+  <div class="card" style="margin-top:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div class="card-title" style="margin-bottom:0">Weekly Recap</div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select id="recap-year" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+        <div style="display:flex;gap:4px;flex-wrap:wrap" id="recap-week-btns"></div>
+      </div>
+    </div>
+    <div id="recap-content"></div>
   </div>
 </div>
 
@@ -719,6 +732,7 @@ const STATIC = {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let A; // analysis results
 let draftFormat = 'all', draftPos = 'all', evoPos = 'all', h2hMode = 'total';
+let recapYear = null, recapWeek = null;
 let mgrSort = { col: 'winPct', asc: false };
 let piSort  = { col: 'finalPI', asc: false };
 // Populated from managers.json at boot — do not hardcode here
@@ -807,6 +821,28 @@ function buildHome() {
       </div>
       ${bar(n/maxT*100, A.mgrColors[mgr] || '#6C63FF', 8)}
     </div>`).join('');
+
+  // Populate year selector
+  const recapYearSel = $('recap-year');
+  const recapYears = Object.keys(A.weeklyRecaps).sort((a,b) => b-a);
+  recapYears.forEach(yr => {
+    const o = document.createElement('option');
+    o.value = yr; o.textContent = yr;
+    recapYearSel.appendChild(o);
+  });
+  recapYear = recapYears[0];
+  recapYearSel.value = recapYear;
+  recapYearSel.addEventListener('change', () => {
+    recapYear = recapYearSel.value;
+    const wks = A.weeklyRecaps[recapYear];
+    recapWeek = wks[wks.length - 1].week;
+    buildRecapWeekBtns();
+    renderRecap();
+  });
+  const wks0 = A.weeklyRecaps[recapYear];
+  recapWeek = wks0[wks0.length - 1].week;
+  buildRecapWeekBtns();
+  renderRecap();
 
   // PPW chart
   mkChart('ppwC', 'line',
@@ -1248,6 +1284,102 @@ function updateH2H() {
       <div class="h2h-side">
         <div class="h2h-wins" style="color:${m2col}">${r.l}</div>
         <div class="h2h-name">${m2}</div>
+      </div>
+    </div>`;
+}
+
+// ─── WEEKLY RECAP ────────────────────────────────────────────────────────────
+function buildRecapWeekBtns() {
+  const wks = A.weeklyRecaps[recapYear] || [];
+  $('recap-week-btns').innerHTML = wks.map(w =>
+    `<button class="fbtn${w.week === recapWeek ? ' on' : ''}" onclick="setRecapWeek(${w.week},this)">Wk ${w.week}</button>`
+  ).join('');
+}
+
+function setRecapWeek(wk, el) {
+  recapWeek = wk;
+  document.querySelectorAll('#recap-week-btns .fbtn').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  renderRecap();
+}
+
+function renderRecap() {
+  const wks = A.weeklyRecaps[recapYear] || [];
+  const wk = wks.find(w => w.week === recapWeek);
+  if (!wk) { $('recap-content').innerHTML = '<p style="color:var(--text3)">No data for this week.</p>'; return; }
+
+  const vorSpanSmall = v => `<span style="color:${v>=0?'var(--green)':'var(--red)'};font-family:var(--font-mono);font-size:11px">${v>=0?'+':''}${v}</span>`;
+
+  // Matchup results
+  const matchupRows = wk.matchups.map(m => {
+    const winnerLeft = m.p1 >= m.p2;
+    const w1 = winnerLeft ? 'color:var(--text)' : 'color:var(--text3)';
+    const w2 = !winnerLeft ? 'color:var(--text)' : 'color:var(--text3)';
+    return `<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;padding:8px 0;border-bottom:.5px solid var(--border)">
+      <div style="text-align:right">
+        <span style="${w1};font-weight:${winnerLeft?600:400};font-size:13px">${m.m1}</span>
+        <span style="font-size:10px;color:var(--text3);display:block">${m.t1.substring(0,22)}</span>
+      </div>
+      <div style="text-align:center;font-family:var(--font-mono);font-size:14px;font-weight:600;white-space:nowrap">
+        <span style="${w1}">${m.p1.toFixed(1)}</span>
+        <span style="color:var(--text3);margin:0 4px">–</span>
+        <span style="${w2}">${m.p2.toFixed(1)}</span>
+      </div>
+      <div>
+        <span style="${w2};font-weight:${!winnerLeft?600:400};font-size:13px">${m.m2}</span>
+        <span style="font-size:10px;color:var(--text3);display:block">${m.t2.substring(0,22)}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Power rankings
+  const prRows = wk.powerRankings.map((pr, i) => {
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const col = A.mgrColors[pr.mgr] || 'var(--text2)';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:.5px solid var(--border)">
+      <span style="font-family:var(--font-mono);color:var(--text3);font-size:11px;width:20px;text-align:right">${medal||'#'+(i+1)}</span>
+      <span class="mgr-dot" style="background:${col}"></span>
+      <span style="font-size:13px;font-weight:500;flex:1">${pr.mgr}</span>
+      <span style="font-family:var(--font-mono);font-size:11px;color:var(--text3)">${pr.wins}W</span>
+      <span style="font-family:var(--font-mono);font-size:12px;font-weight:500">${pr.pts.toLocaleString()}</span>
+    </div>`;
+  }).join('');
+
+  $('recap-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="recap-grid">
+      <div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:10px">Matchup Results</div>
+        ${matchupRows}
+      </div>
+      <div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div style="background:var(--bg3);border-radius:8px;padding:12px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:6px">High Scorer</div>
+            <div style="font-size:15px;font-weight:600">${mgrDot(wk.highScorer.mgr)}${wk.highScorer.mgr}</div>
+            <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--green);margin-top:2px">${wk.highScorer.pts.toFixed(1)}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${wk.highScorer.team.substring(0,20)}</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:6px">Manager of Week</div>
+            <div style="font-size:15px;font-weight:600">${mgrDot(wk.motw.mgr)}${wk.motw.mgr}</div>
+            <div style="font-family:var(--font-mono);font-size:20px;font-weight:700;color:var(--accent);margin-top:2px">${wk.motw.pts.toFixed(1)}</div>
+            <div style="font-size:10px;color:var(--text3);margin-top:2px">${vorSpanSmall(wk.motw.vsAvg)} vs season avg</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:6px">Biggest Blowout</div>
+            <div style="font-size:12px;font-weight:600">${mgrDot(wk.blowout.winner)}${wk.blowout.winner}</div>
+            <div style="font-family:var(--font-mono);font-size:13px;margin-top:2px">${wk.blowout.winPts.toFixed(1)} <span style="color:var(--text3)">–</span> ${wk.blowout.losePts.toFixed(1)}</div>
+            <div style="font-size:10px;color:var(--red);font-family:var(--font-mono);margin-top:2px">Δ ${wk.blowout.diff.toFixed(1)}</div>
+          </div>
+          <div style="background:var(--bg3);border-radius:8px;padding:12px">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:6px">Closest Game</div>
+            <div style="font-size:12px;font-weight:600">${mgrDot(wk.closest.winner)}${wk.closest.winner}</div>
+            <div style="font-family:var(--font-mono);font-size:13px;margin-top:2px">${wk.closest.winPts.toFixed(1)} <span style="color:var(--text3)">–</span> ${wk.closest.losePts.toFixed(1)}</div>
+            <div style="font-size:10px;color:var(--accent);font-family:var(--font-mono);margin-top:2px">Δ ${wk.closest.diff.toFixed(1)}</div>
+          </div>
+        </div>
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--text3);margin-bottom:8px">Power Rankings</div>
+        ${prRows}
       </div>
     </div>`;
 }
