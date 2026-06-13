@@ -278,6 +278,7 @@ canvas { display: block; }
     <div class="tab" onclick="sw('trades',this)">Trades</div>
     <div class="tab" onclick="sw('draft',this)">Draft</div>
     <div class="tab" onclick="sw('evo',this)">Team Evolution</div>
+    <div class="tab" onclick="sw('bench',this)">Bench Sits</div>
     <div class="tab" onclick="sw('power',this)">Power Index</div>
     <div class="tab" onclick="sw('h2h',this)">Head to Head</div>
   </div>
@@ -464,6 +465,60 @@ canvas { display: block; }
       <div class="card-title">Worst Drops All-Time</div>
       <div class="note">⚠️ Based on full-season pts — actual post-drop value may differ. Week-by-week solution in progress.</div>
       <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pts</th></tr></thead><tbody id="drop-worst-tb"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- BENCH SITS -->
+<div id="pnl-bench" class="pnl">
+  <div class="metrics" id="bench-metrics"></div>
+
+  <!-- Filters -->
+  <div class="filter-row" style="margin-bottom:20px">
+    <span class="filter-label">Manager:</span>
+    <select id="bench-mgr-filter" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+    <div class="sep"></div>
+    <span class="filter-label">Position:</span>
+    <button class="fbtn on" onclick="setBenchPos('all',this)">All</button>
+    <button class="fbtn" onclick="setBenchPos('QB',this)">QB</button>
+    <button class="fbtn" onclick="setBenchPos('RB',this)">RB</button>
+    <button class="fbtn" onclick="setBenchPos('WR',this)">WR</button>
+    <button class="fbtn" onclick="setBenchPos('TE',this)">TE</button>
+    <button class="fbtn" onclick="setBenchPos('K',this)">K</button>
+    <button class="fbtn" onclick="setBenchPos('DEF',this)">DEF</button>
+    <div class="sep"></div>
+    <span class="filter-label">Season:</span>
+    <select id="bench-year-filter" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+  </div>
+
+  <div class="two">
+    <div class="card">
+      <div class="card-title">Worst Bench Sits</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Points left on bench by starting the wrong player. One sit per bench player per week.</p>
+      <table class="tbl tbl-sm"><thead><tr>
+        <th>Year</th><th>Wk</th><th>Manager</th><th>Started</th><th>Pts</th><th>Benched</th><th>Pts</th><th>Missed</th>
+      </tr></thead><tbody id="bench-sits-tb"></tbody></table>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-title">Unluckiest Weeks</div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Most total points left on bench in a single week.</p>
+        <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Wk</th><th>Manager</th><th>On Bench</th><th>Sits</th></tr></thead>
+        <tbody id="bench-weeks-tb"></tbody></table>
+      </div>
+      <div class="card">
+        <div class="card-title">Position Breakdown</div>
+        <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Where each manager leaves the most points on bench.</p>
+        <div id="bench-pos-bars"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manager Summary Table -->
+  <div class="card">
+    <div class="card-title">Manager Summary</div>
+    <div style="overflow-x:auto">
+      <table class="tbl"><thead><tr id="bench-mgr-hdr"></tr></thead><tbody id="bench-mgr-tb"></tbody></table>
     </div>
   </div>
 </div>
@@ -732,6 +787,8 @@ const STATIC = {
 // ─── STATE ────────────────────────────────────────────────────────────────────
 let A; // analysis results
 let draftFormat = 'all', draftPos = 'all', evoPos = 'all', h2hMode = 'total';
+let benchPos = 'all', benchMgr = 'all', benchYear = 'all';
+let benchMgrSort = { col: 'missed', asc: false };
 let recapYear = null, recapWeek = null;
 let mgrSort = { col: 'winPct', asc: false };
 let piSort  = { col: 'finalPI', asc: false };
@@ -1425,6 +1482,174 @@ function renderRecap() {
     </div>`;
 }
 
+// ─── BENCH SITS ───────────────────────────────────────────────────────────────
+const BENCH_MGR_HEADERS = [
+  { k:'m',      label:'Manager',      num:false },
+  { k:'sits',   label:'Sits',         num:true  },
+  { k:'missed', label:'Pts Missed',   num:true  },
+  { k:'avg',    label:'Avg / Sit',    num:true  },
+  { k:'worst',  label:'Worst',        num:true  },
+  { k:'topPos', label:'Costliest Pos',num:false },
+];
+
+function buildBench() {
+  // Populate manager filter
+  const mgrSel = $('bench-mgr-filter');
+  mgrSel.innerHTML = '<option value="all">All Managers</option>';
+  const mgrsWithData = [...new Set(A.benchSits.map(s => s.m))].sort();
+  mgrsWithData.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m;
+    mgrSel.appendChild(o);
+  });
+  mgrSel.addEventListener('change', () => { benchMgr = mgrSel.value; renderBench(); });
+
+  // Populate year filter
+  const yearSel = $('bench-year-filter');
+  yearSel.innerHTML = '<option value="all">All Seasons</option>';
+  const years = [...new Set(A.benchSits.map(s => s.y))].sort().reverse();
+  years.forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    yearSel.appendChild(o);
+  });
+  yearSel.addEventListener('change', () => { benchYear = yearSel.value; renderBench(); });
+
+  renderBench();
+}
+
+const setBenchPos = (pos, el) => {
+  benchPos = pos;
+  document.querySelectorAll('[onclick^="setBenchPos"]').forEach(b => b.classList.remove('on'));
+  el.classList.add('on');
+  renderBench();
+};
+
+function renderBench() {
+  // Filter sits
+  const filtered = A.benchSits.filter(s =>
+    (benchPos  === 'all' || s.pos === benchPos) &&
+    (benchMgr  === 'all' || s.m  === benchMgr) &&
+    (benchYear === 'all' || s.y  === benchYear)
+  );
+
+  // Metrics
+  const totalSits   = filtered.length;
+  const totalMissed = filtered.reduce((a,b) => a + b.miss, 0);
+  const worstMiss   = filtered.length ? filtered[0].miss : 0;
+  const avgMiss     = totalSits ? totalMissed / totalSits : 0;
+  $('bench-metrics').innerHTML = `
+    <div class="metric"><div class="metric-val">${totalSits.toLocaleString()}</div><div class="metric-lbl">Total Sits</div></div>
+    <div class="metric"><div class="metric-val">${Math.round(totalMissed).toLocaleString()}</div><div class="metric-lbl">Pts Left on Bench</div></div>
+    <div class="metric"><div class="metric-val">${avgMiss.toFixed(1)}</div><div class="metric-lbl">Avg Pts Missed</div></div>
+    <div class="metric"><div class="metric-val">${worstMiss}</div><div class="metric-lbl">Worst Single Sit</div></div>
+  `;
+
+  // Top 10 worst sits table
+  $('bench-sits-tb').innerHTML = filtered.slice(0, 10).map(s => `<tr>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${s.y}</td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${s.wk}</td>
+    <td>${mgrDot(s.m)}${s.m}</td>
+    <td style="color:var(--text2)">${s.st}</td>
+    <td style="font-family:var(--font-mono);color:var(--red)">${s.sp.toFixed(1)}</td>
+    <td style="color:var(--text2)">${s.bn}</td>
+    <td style="font-family:var(--font-mono);color:var(--green)">${s.bp.toFixed(1)}</td>
+    <td><span class="bdg bdg-neg">-${s.miss}</span></td>
+  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:16px">No sits match this filter</td></tr>';
+
+  // Unluckiest weeks (filter-aware)
+  const weekMap = {};
+  for (const s of filtered) {
+    const k = `${s.y}_${s.wk}_${s.m}`;
+    if (!weekMap[k]) weekMap[k] = { y:s.y, wk:s.wk, m:s.m, missed:0, count:0 };
+    weekMap[k].missed += s.miss;
+    weekMap[k].count++;
+  }
+  const worstWeeks = Object.values(weekMap).sort((a,b) => b.missed - a.missed).slice(0, 10);
+  $('bench-weeks-tb').innerHTML = worstWeeks.map(w => `<tr>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${w.y}</td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${w.wk}</td>
+    <td>${mgrDot(w.m)}${w.m}</td>
+    <td><span class="bdg bdg-neg">-${w.missed.toFixed(1)}</span></td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${w.count}</td>
+  </tr>`).join('') || '<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No data</td></tr>';
+
+  // Position breakdown bars (for filtered manager or all)
+  const posTotals = {};
+  for (const s of filtered) {
+    posTotals[s.pos] = (posTotals[s.pos] || 0) + s.miss;
+  }
+  const posEntries = Object.entries(posTotals).sort((a,b) => b[1]-a[1]);
+  const maxPos = posEntries[0]?.[1] || 1;
+  const POS_COLORS = { QB:'var(--accent)', RB:'var(--green)', WR:'#45B7D1', TE:'#FFA07A', K:'#98D8C8', DEF:'#BB8FCE' };
+  $('bench-pos-bars').innerHTML = posEntries.map(([pos, missed]) => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span>${posBdg(pos)} <span style="color:var(--text2);margin-left:6px">${pos}</span></span>
+        <span style="font-family:var(--font-mono);color:var(--text3)">${Math.round(missed)}pts</span>
+      </div>
+      ${bar(missed/maxPos*100, POS_COLORS[pos] || 'var(--accent)', 7)}
+    </div>`).join('');
+
+  // Manager summary table
+  renderBenchMgrTable(filtered);
+}
+
+function renderBenchMgrTable(filtered) {
+  // Recompute per-manager from filtered sits
+  const mgrMap = {};
+  for (const s of filtered) {
+    if (!mgrMap[s.m]) mgrMap[s.m] = { m:s.m, sits:0, missed:0, worst:0, topPos:{} };
+    const ms = mgrMap[s.m];
+    ms.sits++;
+    ms.missed += s.miss;
+    if (s.miss > ms.worst) ms.worst = s.miss;
+    ms.topPos[s.pos] = (ms.topPos[s.pos] || 0) + s.miss;
+  }
+  const rows = Object.values(mgrMap).map(ms => ({
+    ...ms,
+    missed: +ms.missed.toFixed(1),
+    avg: +(ms.missed / ms.sits).toFixed(1),
+    topPos: Object.entries(ms.topPos).sort((a,b) => b[1]-a[1])[0]?.[0] || '?',
+  }));
+
+  rows.sort((a,b) => {
+    const va = a[benchMgrSort.col], vb = b[benchMgrSort.col];
+    if (typeof va === 'string') return benchMgrSort.asc ? va.localeCompare(vb) : vb.localeCompare(va);
+    return benchMgrSort.asc ? va - vb : vb - va;
+  });
+
+  $('bench-mgr-hdr').innerHTML = BENCH_MGR_HEADERS.map(h =>
+    `<th onclick="sortBenchMgr('${h.k}')" class="${benchMgrSort.col===h.k?'sorted':''}">${h.label}<span class="arr">${benchMgrSort.col===h.k?(benchMgrSort.asc?'▲':'▼'):'⇅'}</span></th>`
+  ).join('');
+
+  $('bench-mgr-tb').innerHTML = rows.map(r => `<tr style="cursor:pointer" onclick="filterBenchToMgr('${r.m}')">
+    <td>${mgrDot(r.m)}<strong>${r.m}</strong></td>
+    <td style="font-family:var(--font-mono)">${r.sits}</td>
+    <td style="font-family:var(--font-mono)"><span class="bdg bdg-neg">-${r.missed.toLocaleString()}</span></td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${r.avg}</td>
+    <td style="font-family:var(--font-mono);color:var(--red)">${r.worst}</td>
+    <td>${posBdg(r.topPos)}</td>
+  </tr>`).join('') || '<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No data</td></tr>';
+}
+
+function sortBenchMgr(col) {
+  if (benchMgrSort.col === col) benchMgrSort.asc = !benchMgrSort.asc;
+  else { benchMgrSort.col = col; benchMgrSort.asc = col === 'm'; }
+  const filtered = A.benchSits.filter(s =>
+    (benchPos  === 'all' || s.pos === benchPos) &&
+    (benchMgr  === 'all' || s.m  === benchMgr) &&
+    (benchYear === 'all' || s.y  === benchYear)
+  );
+  renderBenchMgrTable(filtered);
+}
+
+function filterBenchToMgr(mgr) {
+  benchMgr = mgr;
+  $('bench-mgr-filter').value = mgr;
+  renderBench();
+}
+
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 async function boot() {
   try {
@@ -1458,6 +1683,7 @@ async function boot() {
     buildHome();
     buildRecap();
     buildMgr();
+    buildBench();
     buildLuck();
     buildTrades();
     renderDraft();

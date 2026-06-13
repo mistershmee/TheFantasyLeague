@@ -649,10 +649,83 @@ function runAnalysis(rawData) {
     }
   }
 
+  // ── BENCH SITS ────────────────────────────────────────────────────────────
+  const benchSits = [];
+  const benchMgrStats = {};
+  const benchWeekStats = {};
+
+  for (const year of years) {
+    const wr = seasons[year].weekly_rosters || {};
+    for (const [week, weekData] of Object.entries(wr)) {
+      for (const [tk, team] of Object.entries(weekData)) {
+        const tname = team.team_name || '';
+        const mgr = resolveManager(null, tname) || tname;
+        const wkKey = `${year}_${week}_${mgr}`;
+
+        for (const sit of team.bench_sits || []) {
+          const entry = {
+            y: year, wk: +week, m: mgr, t: tname,
+            st: sit.started,   sp: sit.started_pts,
+            bn: sit.benched,   bp: sit.benched_pts,
+            pos: sit.position, miss: sit.pts_missed,
+          };
+          benchSits.push(entry);
+
+          // Per-manager stats
+          if (!benchMgrStats[mgr]) benchMgrStats[mgr] = {
+            sits: 0, missed: 0, worst: 0, worstSit: null,
+            byPos: {},
+          };
+          const ms = benchMgrStats[mgr];
+          ms.sits++;
+          ms.missed += sit.pts_missed;
+          if (sit.pts_missed > ms.worst) { ms.worst = sit.pts_missed; ms.worstSit = entry; }
+          if (!ms.byPos[sit.position]) ms.byPos[sit.position] = { sits: 0, missed: 0 };
+          ms.byPos[sit.position].sits++;
+          ms.byPos[sit.position].missed += sit.pts_missed;
+
+          // Per-week stats (unluckiest weeks)
+          if (!benchWeekStats[wkKey]) benchWeekStats[wkKey] = { y: year, wk: +week, m: mgr, missed: 0, count: 0 };
+          benchWeekStats[wkKey].missed += sit.pts_missed;
+          benchWeekStats[wkKey].count++;
+        }
+      }
+    }
+  }
+
+  // Sort sits worst first
+  benchSits.sort((a, b) => b.miss - a.miss);
+
+  // Build manager summary array
+  const benchMgrSummary = ALL_MANAGERS
+    .filter(mgr => benchMgrStats[mgr])
+    .map(mgr => {
+      const s = benchMgrStats[mgr];
+      const topPos = Object.entries(s.byPos).sort((a,b) => b[1].missed - a[1].missed)[0]?.[0] || '?';
+      return {
+        m: mgr,
+        sits: s.sits,
+        missed: +s.missed.toFixed(1),
+        avg: +(s.missed / s.sits).toFixed(1),
+        worst: s.worst,
+        worstSit: s.worstSit,
+        topPos,
+        byPos: s.byPos,
+      };
+    })
+    .sort((a, b) => b.missed - a.missed);
+
+  // Unluckiest single weeks
+  const worstBenchWeeks = Object.values(benchWeekStats)
+    .sort((a, b) => b.missed - a.missed)
+    .slice(0, 20)
+    .map(w => ({ ...w, missed: +w.missed.toFixed(1) }));
+
   return {
     champions, ppw, managerStats, luckCareer, luckSeasons,
     h2h, snakeDrafts, auctionDrafts, avgVORByPos,
     seasonPI, careerPI, tradeDiff, waiverCareer, weeklyRecaps,
+    benchSits, benchMgrSummary, worstBenchWeeks,
     replLevel, mgrColors: MGR_COLORS, lastActive: MGR_LAST_ACTIVE,
   };
 }
