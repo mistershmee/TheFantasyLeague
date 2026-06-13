@@ -356,7 +356,7 @@ function runAnalysis(rawData) {
 
   // ── DRAFT VOR ────────────────────────────────────────────────
   const SNAKE_YEARS = new Set(['2009','2010','2011','2012','2013','2015','2017','2021','2023','2025']);
-  const AUCTION_YEARS_SET = new Set(['2016','2018','2020','2022','2024']);
+  // AUCTION_YEARS_SET defined below in VOE section
   const mgrPosVOR = {};
   for (const mgr of ALL_MANAGERS) mgrPosVOR[mgr] = {};
 
@@ -649,6 +649,143 @@ function runAnalysis(rawData) {
     }
   }
 
+  // ── VOE (VALUE OVER EXPECTED) — DRAFT PICKS ──────────────────────────────────
+  const SNAKE_YEARS_SET  = new Set(['2009','2010','2011','2012','2013','2015','2017','2021','2023','2025']);
+  const AUCTION_YEARS_SET= new Set(['2014','2016','2018','2020','2022','2024']);
+  const AUCTION_BUDGET   = 200;
+  const AUCTION_BINS     = [0,1,3,6,10,15,20,30,50,100];
+
+  // Build snake baseline: (round, pos) → avg VOR
+  const snakeBaseline = {};
+  for (const year of years) {
+    if (!SNAKE_YEARS_SET.has(year)) continue;
+    for (const pick of seasons[year].draft || []) {
+      const pos = pick.position; const rnd = pick.round;
+      if (!rnd || !pos || !REPL_RANK[pos]) continue;
+      const vor = getVOR(+pick.season_points || 0, pos, year);
+      const k = `${rnd}_${pos}`;
+      if (!snakeBaseline[k]) snakeBaseline[k] = [];
+      snakeBaseline[k].push(vor);
+    }
+  }
+  const snakeAvg = {};
+  for (const [k, vors] of Object.entries(snakeBaseline)) {
+    if (vors.length >= 2) snakeAvg[k] = vors.reduce((a,b)=>a+b,0)/vors.length;
+  }
+
+  // Parse auction data from seasons (loaded via auctionDrafts already)
+  // Build auction baseline: (binLo, binHi, pos) → avg VOR
+  const auctionBaseline = {};
+  for (const year of years) {
+    if (!AUCTION_YEARS_SET.has(year)) continue;
+    const picks = seasons[year].auction_draft || [];
+    for (const pick of picks) {
+      const pos = pick.position; const cost = +pick.cost || 0;
+      if (!pos || !REPL_RANK[pos] || cost <= 0) continue;
+      const pct = cost / AUCTION_BUDGET * 100;
+      const vor = getVOR(+pick.season_points || 0, pos, year);
+      for (let i=0; i<AUCTION_BINS.length-1; i++) {
+        if (pct >= AUCTION_BINS[i] && pct < AUCTION_BINS[i+1]) {
+          const k = `${AUCTION_BINS[i]}_${AUCTION_BINS[i+1]}_${pos}`;
+          if (!auctionBaseline[k]) auctionBaseline[k] = [];
+          auctionBaseline[k].push(vor);
+          break;
+        }
+      }
+    }
+  }
+  const auctionAvg = {};
+  for (const [k, vors] of Object.entries(auctionBaseline)) {
+    if (vors.length >= 2) auctionAvg[k] = vors.reduce((a,b)=>a+b,0)/vors.length;
+  }
+
+  function getAuctionExp(pct, pos) {
+    for (let i=0; i<AUCTION_BINS.length-1; i++) {
+      if (pct >= AUCTION_BINS[i] && pct < AUCTION_BINS[i+1]) {
+        return auctionAvg[`${AUCTION_BINS[i]}_${AUCTION_BINS[i+1]}_${pos}`] ?? null;
+      }
+    }
+    return null;
+  }
+
+  // Build unified picks with VOE
+  const allPicksVOE = [];
+
+  // Snake picks
+  for (const year of years) {
+    if (!SNAKE_YEARS_SET.has(year)) continue;
+    const standings = seasons[year].standings || [];
+    const teamMgr = {};
+    for (const t of standings) teamMgr[t.team_key] = resolveManager(t.manager, t.name);
+
+    for (const pick of seasons[year].draft || []) {
+      const pos = pick.position; const rnd = pick.round;
+      if (!rnd || !pos || !REPL_RANK[pos]) continue;
+      const pts = +pick.season_points || 0;
+      const vor = getVOR(pts, pos, year);
+      const exp = snakeAvg[`${rnd}_${pos}`] ?? null;
+      const voe = exp !== null ? +(vor - exp).toFixed(1) : null;
+      const mgr = teamMgr[pick.team_key] || resolveManager(null, pick.player_name);
+      allPicksVOE.push({
+        year, format:'snake', round: rnd, pick: pick.pick || 0,
+        player: pick.player_name || '?', pos, pts, vor: +vor.toFixed(1),
+        exp: exp !== null ? +exp.toFixed(1) : null, voe,
+        mgr: mgr || '?', cost: null, budgetPct: null,
+      });
+    }
+  }
+
+  // Auction picks — loaded from auction_draft in each season
+  for (const year of years) {
+    if (!AUCTION_YEARS_SET.has(year)) continue;
+    for (const pick of seasons[year].auction_draft || []) {
+      const pos = pick.position; const cost = +pick.cost || 0;
+      if (!pos || !REPL_RANK[pos] || cost <= 0) continue;
+      const pts = +pick.season_points || 0;
+      const vor = getVOR(pts, pos, year);
+      const pct = cost / AUCTION_BUDGET * 100;
+      const exp = getAuctionExp(pct, pos);
+      const voe = exp !== null ? +(vor - exp).toFixed(1) : null;
+      const mgr = resolveManager(null, pick.team_name) || pick.team_name || '?';
+      allPicksVOE.push({
+        year, format:'auction', round: null, pick: pick.pick || 0,
+        player: pick.player_name || '?', pos, pts, vor: +vor.toFixed(1),
+        exp: exp !== null ? +exp.toFixed(1) : null, voe,
+        mgr, cost, budgetPct: +pct.toFixed(1),
+      });
+    }
+  }
+
+  // Sort by VOE for best/worst lists
+  const picksByVOE = allPicksVOE
+    .filter(p => p.voe !== null)
+    .sort((a,b) => b.voe - a.voe);
+
+  const bestPicksVOE  = picksByVOE.slice(0, 100);
+  const worstPicksVOE = [...picksByVOE].reverse().slice(0, 100);
+
+  // Per-manager VOE summary
+  const mgrVOE = {};
+  for (const p of picksByVOE) {
+    if (!mgrVOE[p.mgr]) mgrVOE[p.mgr] = { picks:0, totalVOE:0, best:null, worst:null };
+    const ms = mgrVOE[p.mgr];
+    ms.picks++; ms.totalVOE += p.voe;
+    if (!ms.best  || p.voe > ms.best.voe)  ms.best  = p;
+    if (!ms.worst || p.voe < ms.worst.voe) ms.worst = p;
+  }
+  const mgrVOESummary = ALL_MANAGERS
+    .filter(m => mgrVOE[m])
+    .map(m => ({
+      m, picks: mgrVOE[m].picks,
+      avgVOE: +(mgrVOE[m].totalVOE / mgrVOE[m].picks).toFixed(1),
+      totalVOE: +mgrVOE[m].totalVOE.toFixed(1),
+      best: mgrVOE[m].best,
+      worst: mgrVOE[m].worst,
+    }))
+    .sort((a,b) => b.avgVOE - a.avgVOE);
+
+  // ── WEEKLY POWER RANKINGS
+
   // ── WEEKLY POWER RANKINGS (for Team Evolution tab) ──────────────────────────
   const weeklyPowerRankings = {};
   for (const year of years) {
@@ -855,6 +992,7 @@ function runAnalysis(rawData) {
     seasonPI, careerPI, tradeDiff, waiverCareer, weeklyRecaps,
     benchSits, benchMgrSummary, worstBenchWeeks,
     weeklyPowerRankings, postTradeSummary, topPerformances,
+    allPicksVOE, bestPicksVOE, worstPicksVOE, mgrVOESummary,
     replLevel, mgrColors: MGR_COLORS, lastActive: MGR_LAST_ACTIVE,
   };
 }

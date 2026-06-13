@@ -387,8 +387,9 @@ canvas { display: block; }
 
 <!-- DRAFT -->
 <div id="pnl-draft" class="pnl">
-  <div class="vor-note">📊 All draft metrics use <strong>VOR (Value Over Replacement)</strong> — how much a player scored above the last startable player at their position in a 12-team league. Prevents QBs from dominating due to higher raw totals.</div>
-  <div class="filter-row">
+
+  <!-- Filters -->
+  <div class="filter-row" style="margin-bottom:20px">
     <span class="filter-label">Format:</span>
     <button class="fbtn on" onclick="setDF('all',this)">All</button>
     <button class="fbtn" onclick="setDF('snake',this)">Snake</button>
@@ -396,42 +397,54 @@ canvas { display: block; }
     <div class="sep"></div>
     <span class="filter-label">Position:</span>
     <button class="fbtn on" onclick="setDP('all',this)">All</button>
-    <button class="fbtn" onclick="setDP('SKILL',this)">WR/RB/TE</button>
     <button class="fbtn" onclick="setDP('QB',this)">QB</button>
     <button class="fbtn" onclick="setDP('RB',this)">RB</button>
     <button class="fbtn" onclick="setDP('WR',this)">WR</button>
     <button class="fbtn" onclick="setDP('TE',this)">TE</button>
     <button class="fbtn" onclick="setDP('K',this)">K</button>
     <button class="fbtn" onclick="setDP('DEF',this)">DEF</button>
+    <div class="sep"></div>
+    <span class="filter-label">Manager:</span>
+    <select id="draft-mgr-filter" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+    <div class="sep"></div>
+    <span class="filter-label">Season:</span>
+    <select id="draft-year-filter" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
   </div>
+
+  <!-- Best/Worst by VOE -->
+  <div class="two" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">Best Picks — Value Over Expected (VOE)</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">How much a player outperformed the average player taken at the same round/salary tier. A late-round gem scores high here.</p>
+      <div style="overflow-x:auto"><table class="tbl tbl-sm"><thead><tr>
+        <th>Year</th><th>Slot</th><th>Pos</th><th>Player</th><th>Manager</th><th>VOR</th><th>Expected</th><th>VOE</th>
+      </tr></thead><tbody id="voe-best-tb"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Worst Picks — Value Over Expected (VOE)</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">How much a player underperformed relative to their draft slot. A high pick who busted scores worst here.</p>
+      <div style="overflow-x:auto"><table class="tbl tbl-sm"><thead><tr>
+        <th>Year</th><th>Slot</th><th>Pos</th><th>Player</th><th>Manager</th><th>VOR</th><th>Expected</th><th>VOE</th>
+      </tr></thead><tbody id="voe-worst-tb"></tbody></table></div>
+    </div>
+  </div>
+
+  <!-- Manager VOE Summary -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Manager Draft Summary — VOE</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Average VOE per pick across all draft formats. Positive = consistently drafts better than expected for their slot.</p>
+    <div style="overflow-x:auto"><table class="tbl"><thead><tr>
+      <th>Manager</th><th>Picks</th><th>Avg VOE</th><th>Total VOE</th><th>Best Pick</th><th>Worst Pick</th>
+    </tr></thead><tbody id="mgr-voe-tb"></tbody></table></div>
+  </div>
+
+  <!-- Avg VOE by Position bars -->
   <div class="card">
-    <div class="card-title">Avg VOR Per Pick By Manager</div>
-    <div id="draft-avg-bars"></div>
+    <div class="card-title">Avg VOE by Position</div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Which positions return the most value relative to their draft slot in this league.</p>
+    <div id="voe-pos-bars"></div>
   </div>
-  <div class="two">
-    <div class="card">
-      <div class="card-title">Best Individual Picks All-Time</div>
-      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Ranked by VOR — value above positional replacement level.</p>
-      <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pick</th><th>Pts</th><th>VOR</th></tr></thead><tbody id="pick-best-tb"></tbody></table>
-    </div>
-    <div class="card">
-      <div class="card-title">Worst Individual Picks All-Time</div>
-      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Biggest busts by VOR — scored far below replacement.</p>
-      <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pick</th><th>Pts</th><th>VOR</th></tr></thead><tbody id="pick-worst-tb"></tbody></table>
-    </div>
-  </div>
-  <div class="two">
-    <div class="card">
-      <div class="card-title">Best Drafts All-Time</div>
-      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Era + position adjusted. Top 5 picks by VOR shown.</p>
-      <div id="draft-best-list"></div>
-    </div>
-    <div class="card">
-      <div class="card-title">Worst Drafts All-Time</div>
-      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Era + position adjusted z-score vs league average.</p>
-      <div id="draft-worst-list"></div>
-    </div>
-  </div>
+
 </div>
 
 <!-- EVOLUTION -->
@@ -1106,68 +1119,110 @@ function buildTrades() {
 }
 
 // ─── DRAFT ────────────────────────────────────────────────────────────────────
-const setDF = (f, el) => { draftFormat=f; document.querySelectorAll('[onclick^="setDF"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderDraft(); };
-const setDP = (p, el) => { draftPos=p;   document.querySelectorAll('[onclick^="setDP"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderDraft(); };
+// setDF and setDP defined in buildDraftTab section below
+
+function buildDraftTab() {
+  // Populate filters
+  const mgrSel = $('draft-mgr-filter');
+  mgrSel.innerHTML = '<option value="all">All Managers</option>';
+  [...new Set(A.allPicksVOE.map(p=>p.mgr))].sort().forEach(m => {
+    const o = document.createElement('option'); o.value=m; o.textContent=m; mgrSel.appendChild(o);
+  });
+  mgrSel.addEventListener('change', renderDraft);
+
+  const yearSel = $('draft-year-filter');
+  yearSel.innerHTML = '<option value="all">All Seasons</option>';
+  [...new Set(A.allPicksVOE.map(p=>p.year))].sort().reverse().forEach(y => {
+    const o = document.createElement('option'); o.value=y; o.textContent=y; yearSel.appendChild(o);
+  });
+  yearSel.addEventListener('change', renderDraft);
+
+  renderDraft();
+}
+
+const setDF = (f,el) => { draftFormat=f; document.querySelectorAll('[onclick^="setDF"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderDraft(); };
+const setDP = (p,el) => { draftPos=p;   document.querySelectorAll('[onclick^="setDP"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderDraft(); };
 
 function renderDraft() {
-  // Avg VOR bars
-  const posData = (A.avgVORByPos[draftPos] || A.avgVORByPos['all']).slice().sort((a,b) => b.avg - a.avg);
-  const maxAbs = Math.max(...posData.map(d => Math.abs(d.avg)), 1);
-  $('draft-avg-bars').innerHTML = posData.map(d => {
-    const neg = d.avg < 0;
-    const col = neg ? 'var(--red)' : (A.mgrColors[d.n] || '#6C63FF');
-    return `
-      <div style="margin-bottom:10px">
-        <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-          <span style="color:var(--text2)">${mgrDot(d.n)}${d.n}</span>
-          <span style="${neg?'color:var(--red)':'color:var(--text3)'};font-family:var(--font-mono)">${d.avg>=0?'+':''}${d.avg}</span>
-        </div>
-        ${bar(Math.abs(d.avg)/maxAbs*100, col, 7)}
-      </div>`;
-  }).join('');
+  const mgrFilter  = $('draft-mgr-filter')?.value  || 'all';
+  const yearFilter = $('draft-year-filter')?.value || 'all';
 
-  // Individual picks
-  const fmtF = p => draftFormat === 'all' || p.type === draftFormat;
-  const posF = p => posMatch(p.pos, draftPos);
-  const filtB = STATIC.picksB.filter(p => fmtF(p) && posF(p)).slice(0, 10);
-  const filtW = STATIC.picksW.filter(p => fmtF(p) && posF(p)).slice(0, 10);
-  const pickRow = (p, best) => `<tr>
-    <td style="font-family:var(--font-mono);color:var(--text3)">${p.y}</td>
-    <td style="color:var(--text)">${p.p}</td>
-    <td>${posBdg(p.pos)}</td>
-    <td style="color:var(--text2)">${p.m}</td>
-    <td>${typBdg(p.type)} <span style="font-family:var(--font-mono);color:var(--text3)">${p.pick}</span></td>
-    <td style="font-family:var(--font-mono)">${p.pts}</td>
-    <td>${vorSpan(p.vor)}</td>
-  </tr>`;
-  $('pick-best-tb').innerHTML = filtB.map(p => pickRow(p, true)).join('') || `<tr><td colspan="7" style="color:var(--text3);text-align:center;padding:16px">No picks match this filter</td></tr>`;
-  $('pick-worst-tb').innerHTML = filtW.map(p => pickRow(p, false)).join('') || `<tr><td colspan="7" style="color:var(--text3);text-align:center;padding:16px">No picks match this filter</td></tr>`;
+  const filtered = A.allPicksVOE.filter(p =>
+    p.voe !== null &&
+    (draftFormat === 'all' || p.format === draftFormat) &&
+    (draftPos    === 'all' || p.pos    === draftPos) &&
+    (mgrFilter   === 'all' || p.mgr    === mgrFilter) &&
+    (yearFilter  === 'all' || p.year   === yearFilter)
+  );
 
-  // Best/worst team drafts
-  const allDrafts = [...A.snakeDrafts, ...A.auctionDrafts].sort((a,b) => b.z - a.z);
-  const filtDrafts = draftFormat === 'all' ? allDrafts : allDrafts.filter(d => d.type === draftFormat);
-  const bestDrafts = filtDrafts.slice(0, 10);
-  const worstDrafts = [...filtDrafts].sort((a,b) => a.z - b.z).slice(0, 10);
+  const sorted = [...filtered].sort((a,b) => b.voe - a.voe);
+  const best   = sorted.slice(0, 15);
+  const worst  = [...sorted].reverse().slice(0, 15);
 
-  function draftEntry(e, best) {
-    const isA = e.type === 'auction';
-    const zBdg = best ? `<span class="bdg bdg-pos">z=${e.z}</span>` : `<span class="bdg bdg-neg">z=${e.z}</span>`;
-    const typB = isA ? '<span class="bdg bdg-gold">Auction</span>' : '<span class="bdg bdg-blue">Snake</span>';
-    const picks = (e.picks || []).map(p => {
-      const metric = isA ? `${p.r} · ${p.pts}pts · <span style="${p.v>=0?'color:var(--green)':'color:var(--red)'};font-family:var(--font-mono)">VOC:${p.v>=0?'+':''}${p.v}</span>` :
-        `${p.r} ${posBdg(p.pos||'?')} · ${p.pts}pts · <span style="${p.v>=0?'color:var(--green)':'color:var(--red)'};font-family:var(--font-mono)">VOR:${p.v>=0?'+':''}${p.v}</span>`;
-      return `<div class="de-pick"><span class="de-pick-name">${p.n}</span><span class="de-pick-stat">${metric}</span></div>`;
-    }).join('');
-    return `<div class="de">
-      <div class="de-hdr">
-        <div><div class="de-mgr">${mgrDot(e.m)}${e.year} ${e.m}</div><div class="de-team">${e.team}</div></div>
-        <div class="de-badges">${typB}${zBdg}<span style="font-family:var(--font-mono);font-size:10px;color:var(--text3)">VOR=${e.vor}</span></div>
-      </div>
-      <div class="de-picks">${picks}</div>
-    </div>`;
+  function slotLabel(p) {
+    if (p.format === 'snake') return `Rd ${p.round}`;
+    return `$${p.cost} (${p.budgetPct}%)`;
   }
-  $('draft-best-list').innerHTML = bestDrafts.map(e => draftEntry(e, true)).join('');
-  $('draft-worst-list').innerHTML = worstDrafts.map(e => draftEntry(e, false)).join('');
+
+  function voeRow(p) {
+    const voeColor = p.voe >= 0 ? 'var(--green)' : 'var(--red)';
+    return `<tr>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${p.year}</td>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${slotLabel(p)}</td>
+      <td>${posBdg(p.pos)}</td>
+      <td style="font-weight:600">${p.player}</td>
+      <td>${mgrDot(p.mgr)}${p.mgr}</td>
+      <td style="font-family:var(--font-mono);color:var(--text2)">${p.vor > 0 ? '+':''}${p.vor}</td>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${p.exp > 0 ? '+':''}${p.exp}</td>
+      <td><span class="bdg ${p.voe>=0?'bdg-pos':'bdg-neg'}">${p.voe>=0?'+':''}${p.voe}</span></td>
+    </tr>`;
+  }
+
+  $('voe-best-tb').innerHTML  = best.map(voeRow).join('')  || '<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:16px">No picks match this filter</td></tr>';
+  $('voe-worst-tb').innerHTML = worst.map(voeRow).join('') || '<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:16px">No picks match this filter</td></tr>';
+
+  // Manager summary (from filtered picks)
+  const mgrMap = {};
+  for (const p of filtered) {
+    if (!mgrMap[p.mgr]) mgrMap[p.mgr] = { picks:0, total:0, best:null, worst:null };
+    mgrMap[p.mgr].picks++;
+    mgrMap[p.mgr].total += p.voe;
+    if (!mgrMap[p.mgr].best  || p.voe > mgrMap[p.mgr].best.voe)  mgrMap[p.mgr].best  = p;
+    if (!mgrMap[p.mgr].worst || p.voe < mgrMap[p.mgr].worst.voe) mgrMap[p.mgr].worst = p;
+  }
+  const mgrRows = Object.entries(mgrMap)
+    .map(([m,s]) => ({ m, picks:s.picks, avg:+(s.total/s.picks).toFixed(1), total:+s.total.toFixed(1), best:s.best, worst:s.worst }))
+    .sort((a,b) => b.avg - a.avg);
+
+  $('mgr-voe-tb').innerHTML = mgrRows.map(r => `<tr>
+    <td>${mgrDot(r.m)}<strong>${r.m}</strong></td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${r.picks}</td>
+    <td><span class="bdg ${r.avg>=0?'bdg-pos':'bdg-neg'}">${r.avg>=0?'+':''}${r.avg}</span></td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${r.total>=0?'+':''}${r.total}</td>
+    <td style="font-size:11px;color:var(--text2)">${r.best?.player || '—'} <span style="color:var(--green);font-family:var(--font-mono)">${r.best ? '+'+r.best.voe : ''}</span></td>
+    <td style="font-size:11px;color:var(--text2)">${r.worst?.player || '—'} <span style="color:var(--red);font-family:var(--font-mono)">${r.worst ? r.worst.voe : ''}</span></td>
+  </tr>`).join('') || '<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No data</td></tr>';
+
+  // Position bars
+  const posByVOE = {};
+  for (const p of filtered) {
+    if (!posByVOE[p.pos]) posByVOE[p.pos] = [];
+    posByVOE[p.pos].push(p.voe);
+  }
+  const posEntries = Object.entries(posByVOE)
+    .map(([pos,voes]) => ({ pos, avg: +(voes.reduce((a,b)=>a+b,0)/voes.length).toFixed(1) }))
+    .sort((a,b) => b.avg - a.avg);
+  const maxAbs = Math.max(...posEntries.map(p => Math.abs(p.avg)), 1);
+  const POS_COLORS = { QB:'var(--accent)', RB:'var(--green)', WR:'#45B7D1', TE:'#FFA07A', K:'#98D8C8', DEF:'#BB8FCE' };
+
+  $('voe-pos-bars').innerHTML = posEntries.map(({pos, avg}) => `
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
+        <span>${posBdg(pos)} <span style="color:var(--text2);margin-left:6px">${pos}</span></span>
+        <span style="font-family:var(--font-mono);color:${avg>=0?'var(--green)':'var(--red)'}">${avg>=0?'+':''}${avg} avg VOE</span>
+      </div>
+      ${bar(Math.abs(avg)/maxAbs*100, avg>=0 ? (POS_COLORS[pos]||'var(--accent)') : 'var(--red)', 7)}
+    </div>`).join('');
 }
 
 // ─── EVOLUTION ────────────────────────────────────────────────────────────────
@@ -1907,7 +1962,7 @@ async function boot() {
     buildScorers();
     buildLuck();
     buildTrades();
-    renderDraft();
+    buildDraftTab();
     buildEvo();
     buildPower();
     buildH2H();
