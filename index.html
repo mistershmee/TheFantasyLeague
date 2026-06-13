@@ -430,6 +430,24 @@ canvas { display: block; }
     </div>
   </div>
 
+  <!-- Top / Bottom 10 Drafts -->
+  <div class="two" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">Top 10 Drafts All Time</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Best single-season drafts by total VOE — the sum of every pick's value over expectation.</p>
+      <table class="tbl tbl-sm"><thead><tr>
+        <th>Rank</th><th>Year</th><th>Format</th><th>Manager</th><th>Total VOE</th><th>Avg VOE</th><th>Best Pick</th>
+      </tr></thead><tbody id="best-drafts-tb"></tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-title">Bottom 10 Drafts All Time</div>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Worst single-season drafts by total VOE — chronic busts relative to draft slot.</p>
+      <table class="tbl tbl-sm"><thead><tr>
+        <th>Rank</th><th>Year</th><th>Format</th><th>Manager</th><th>Total VOE</th><th>Avg VOE</th><th>Worst Pick</th>
+      </tr></thead><tbody id="worst-drafts-tb"></tbody></table>
+    </div>
+  </div>
+
   <!-- Manager VOE Summary -->
   <div class="card" style="margin-bottom:20px">
     <div class="card-title">Manager Draft Summary — VOE</div>
@@ -437,13 +455,6 @@ canvas { display: block; }
     <div style="overflow-x:auto"><table class="tbl"><thead><tr>
       <th>Manager</th><th>Picks</th><th>Avg VOE</th><th>Total VOE</th><th>Best Pick</th><th>Worst Pick</th>
     </tr></thead><tbody id="mgr-voe-tb"></tbody></table></div>
-  </div>
-
-  <!-- Avg VOE by Position bars -->
-  <div class="card">
-    <div class="card-title">Avg VOE by Position</div>
-    <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Which positions return the most value relative to their draft slot in this league.</p>
-    <div id="voe-pos-bars"></div>
   </div>
 
 </div>
@@ -1218,14 +1229,38 @@ function renderDraft() {
   const maxAbs = Math.max(...posEntries.map(p => Math.abs(p.avg)), 1);
   const POS_COLORS = { QB:'var(--accent)', RB:'var(--green)', WR:'#45B7D1', TE:'#FFA07A', K:'#98D8C8', DEF:'#BB8FCE' };
 
-  $('voe-pos-bars').innerHTML = posEntries.map(({pos, avg}) => `
-    <div style="margin-bottom:12px">
-      <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px">
-        <span>${posBdg(pos)} <span style="color:var(--text2);margin-left:6px">${pos}</span></span>
-        <span style="font-family:var(--font-mono);color:${avg>=0?'var(--green)':'var(--red)'}">${avg>=0?'+':''}${avg} avg VOE</span>
-      </div>
-      ${bar(Math.abs(avg)/maxAbs*100, avg>=0 ? (POS_COLORS[pos]||'var(--accent)') : 'var(--red)', 7)}
-    </div>`).join('');
+  // Top/Bottom 10 drafts — filter-aware
+  const draftTeamMap = {};
+  for (const p of filtered) {
+    const key = `${p.year}_${p.mgr}_${p.format}`;
+    if (!draftTeamMap[key]) draftTeamMap[key] = {
+      year:p.year, mgr:p.mgr, format:p.format,
+      totalVOE:0, picks:0, topPick:null, topVOE:-9999, worstPick:null, worstVOE:9999
+    };
+    const dt = draftTeamMap[key];
+    dt.totalVOE += p.voe; dt.picks++;
+    if (p.voe > dt.topVOE)   { dt.topVOE = p.voe;   dt.topPick   = p.player; }
+    if (p.voe < dt.worstVOE) { dt.worstVOE = p.voe; dt.worstPick = p.player; }
+  }
+  const draftRanked = Object.values(draftTeamMap)
+    .map(dt => ({...dt, totalVOE:+dt.totalVOE.toFixed(1), avgVOE:+(dt.totalVOE/dt.picks).toFixed(1), topVOE:+dt.topVOE.toFixed(1), worstVOE:+dt.worstVOE.toFixed(1)}))
+    .sort((a,b) => b.totalVOE - a.totalVOE);
+
+  function draftRow(dr, rank) {
+    const fmt = dr.format === 'snake' ? '🐍 Snake' : '💰 Auction';
+    return `<tr>
+      <td style="font-family:var(--font-mono);color:var(--text3)">#${rank}</td>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${dr.year}</td>
+      <td style="font-size:11px">${fmt}</td>
+      <td>${mgrDot(dr.mgr)}<strong>${dr.mgr}</strong></td>
+      <td><span class="bdg ${dr.totalVOE>=0?'bdg-pos':'bdg-neg'}">${dr.totalVOE>=0?'+':''}${dr.totalVOE}</span></td>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${dr.avgVOE>=0?'+':''}${dr.avgVOE}</td>
+      <td style="font-size:11px;color:var(--text2)">${dr.topPick || '—'}</td>
+    </tr>`;
+  }
+
+  $('best-drafts-tb').innerHTML  = draftRanked.slice(0,10).map((dr,i)=>draftRow(dr,i+1)).join('') || '<tr><td colspan="7" style="color:var(--text3);text-align:center;padding:16px">No data</td></tr>';
+  $('worst-drafts-tb').innerHTML = [...draftRanked].reverse().slice(0,10).map((dr,i)=>draftRow(dr,i+1)).join('') || '<tr><td colspan="7" style="color:var(--text3);text-align:center;padding:16px">No data</td></tr>';
 }
 
 // ─── EVOLUTION ────────────────────────────────────────────────────────────────

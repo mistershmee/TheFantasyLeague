@@ -764,6 +764,32 @@ function runAnalysis(rawData) {
   const bestPicksVOE  = picksByVOE.slice(0, 100);
   const worstPicksVOE = [...picksByVOE].reverse().slice(0, 100);
 
+  // ── TEAM DRAFT VOE TOTALS (top/bottom 10 drafts of all time) ─────────────
+  const teamDraftMap = {};
+  for (const p of allPicksVOE) {
+    if (p.voe === null) continue;
+    // Key: year + manager (snake uses team_key, auction uses team name)
+    const key = `${p.year}_${p.mgr}_${p.format}`;
+    if (!teamDraftMap[key]) teamDraftMap[key] = {
+      year: p.year, mgr: p.mgr, format: p.format,
+      totalVOE: 0, picks: 0, topPick: null, topVOE: -9999,
+    };
+    const td = teamDraftMap[key];
+    td.totalVOE += p.voe;
+    td.picks++;
+    if (p.voe > td.topVOE) { td.topVOE = p.voe; td.topPick = p.player; }
+  }
+
+  const teamDrafts = Object.values(teamDraftMap).map(td => ({
+    ...td,
+    totalVOE: +td.totalVOE.toFixed(1),
+    avgVOE:   +(td.totalVOE / td.picks).toFixed(1),
+    topVOE:   +td.topVOE.toFixed(1),
+  })).sort((a,b) => b.totalVOE - a.totalVOE);
+
+  const bestDrafts  = teamDrafts.slice(0, 10);
+  const worstDrafts = [...teamDrafts].reverse().slice(0, 10);
+
   // Per-manager VOE summary
   const mgrVOE = {};
   for (const p of picksByVOE) {
@@ -993,6 +1019,7 @@ function runAnalysis(rawData) {
     benchSits, benchMgrSummary, worstBenchWeeks,
     weeklyPowerRankings, postTradeSummary, topPerformances,
     allPicksVOE, bestPicksVOE, worstPicksVOE, mgrVOESummary,
+    bestDrafts, worstDrafts,
     replLevel, mgrColors: MGR_COLORS, lastActive: MGR_LAST_ACTIVE,
   };
 }
