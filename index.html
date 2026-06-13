@@ -400,6 +400,7 @@ canvas { display: block; }
     <button class="fbtn" onclick="setDP('QB',this)">QB</button>
     <button class="fbtn" onclick="setDP('RB',this)">RB</button>
     <button class="fbtn" onclick="setDP('WR',this)">WR</button>
+    <button class="fbtn" onclick="setDP('SKILL',this)">WR/RB/TE</button>
     <button class="fbtn" onclick="setDP('TE',this)">TE</button>
     <button class="fbtn" onclick="setDP('K',this)">K</button>
     <button class="fbtn" onclick="setDP('DEF',this)">DEF</button>
@@ -514,6 +515,7 @@ canvas { display: block; }
     <button class="fbtn" onclick="setBenchPos('QB',this)">QB</button>
     <button class="fbtn" onclick="setBenchPos('RB',this)">RB</button>
     <button class="fbtn" onclick="setBenchPos('WR',this)">WR</button>
+    <button class="fbtn" onclick="setBenchPos('SKILL',this)">WR/RB/TE</button>
     <button class="fbtn" onclick="setBenchPos('TE',this)">TE</button>
     <button class="fbtn" onclick="setBenchPos('K',this)">K</button>
     <button class="fbtn" onclick="setBenchPos('DEF',this)">DEF</button>
@@ -566,6 +568,7 @@ canvas { display: block; }
     <button class="fbtn" onclick="setScorerPos('QB',this)">QB</button>
     <button class="fbtn" onclick="setScorerPos('RB',this)">RB</button>
     <button class="fbtn" onclick="setScorerPos('WR',this)">WR</button>
+    <button class="fbtn" onclick="setScorerPos('SKILL',this)">WR/RB/TE</button>
     <button class="fbtn" onclick="setScorerPos('TE',this)">TE</button>
     <button class="fbtn" onclick="setScorerPos('K',this)">K</button>
     <button class="fbtn" onclick="setScorerPos('DEF',this)">DEF</button>
@@ -1150,7 +1153,7 @@ function renderDraft() {
   const filtered = A.allPicksVOE.filter(p =>
     p.voe !== null &&
     (draftFormat === 'all' || p.format === draftFormat) &&
-    (draftPos    === 'all' || p.pos    === draftPos) &&
+    (draftPos    === 'all' || (draftPos === 'SKILL' ? ['WR','RB','TE'].includes(p.pos) : p.pos === draftPos)) &&
     (mgrFilter   === 'all' || p.mgr    === mgrFilter) &&
     (yearFilter  === 'all' || p.year   === yearFilter)
   );
@@ -1644,7 +1647,7 @@ const setBenchPos = (pos, el) => {
 function renderBench() {
   // Filter sits
   const filtered = A.benchSits.filter(s =>
-    (benchPos  === 'all' || s.pos === benchPos) &&
+    (benchPos  === 'all' || (benchPos === 'SKILL' ? ['WR','RB','TE'].includes(s.pos) : s.pos === benchPos)) &&
     (benchMgr  === 'all' || s.m  === benchMgr) &&
     (benchYear === 'all' || s.y  === benchYear)
   );
@@ -1753,7 +1756,7 @@ function sortBenchMgr(col) {
   if (benchMgrSort.col === col) benchMgrSort.asc = !benchMgrSort.asc;
   else { benchMgrSort.col = col; benchMgrSort.asc = col === 'm'; }
   const filtered = A.benchSits.filter(s =>
-    (benchPos  === 'all' || s.pos === benchPos) &&
+    (benchPos  === 'all' || (benchPos === 'SKILL' ? ['WR','RB','TE'].includes(s.pos) : s.pos === benchPos)) &&
     (benchMgr  === 'all' || s.m  === benchMgr) &&
     (benchYear === 'all' || s.y  === benchYear)
   );
@@ -1869,7 +1872,7 @@ const setScorerStatus = (s,el) => { scorerStatus=s; document.querySelectorAll('[
 
 function renderScorers() {
   const filtered = A.topPerformances.filter(p =>
-    (scorerPos    === 'all'     || p.pos === scorerPos) &&
+    (scorerPos    === 'all'     || (scorerPos === 'SKILL' ? ['WR','RB','TE'].includes(p.pos) : p.pos === scorerPos)) &&
     (scorerMgr    === 'all'     || p.m   === scorerMgr) &&
     (scorerYear   === 'all'     || p.y   === scorerYear) &&
     (scorerStatus === 'all'     || (scorerStatus === 'started' ? p.started : !p.started))
