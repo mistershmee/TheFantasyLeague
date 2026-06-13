@@ -91,7 +91,7 @@ async function loadManagers() {
     console.warn('Could not load managers.json, using inline fallback:', err.message);
     // Inline fallback — mirrors managers.json exactly
     TEAM_TO_MANAGER = {
-      'Dad Bod Squad':'Chris T',"Dad Bod's Squad":'Chris T','Taste Dwayne Bowe':'Chris T',
+      'Dad Bod Squad':'Chris T',"Dad Bod's Squad":'Chris T',"Dad Bod’s Squad":'Chris T','Taste Dwayne Bowe':'Chris T',
       'McCluster Fucks':'Chris T','Chiefs':'Chris T','Country Roads Take Mahomes':'Chris T',
       'Balls deep':'Ryan','CTown OGs':'Ryan',
       "Nelson's Man-Dillas":'Nels',"Seattle Scgreat's":'Nels','Bi - Flynning':'Nels',"Nels's Nancies":'Nels',
@@ -111,7 +111,7 @@ async function loadManagers() {
       "TD's N' Beer":'Chris B','My Vick is Itchy':'Chris B',
       'ndamukong suh dude!!':'Wes',"Hangin' w/ Hernandez":'Wes','Romophobic':'Wes',
       'Stable of Stars':'Wes','Romosexuals':'Wes','The Spoiler':'Wes','The Spoiled':'Wes',
-      "There's Tua Much Shit On Me":'Wes',
+      "There's Tua Much Shit On Me":'Wes',"There’s Tua Much Shit On Me":'Wes',
       'Schweddy Ballers':'Joseph',"Konys Child Soldiers":'Joseph',"Joe's Neckbeards":'Joseph',
       '2 Gurleys 1 Cup':'Evan','Sergio Dipp':'Evan',
       'Donkey Punch':'JR',"Suckin' Daddy's D":'Travis','The T.O. Show':'Travis',
