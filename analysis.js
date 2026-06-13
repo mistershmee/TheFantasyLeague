@@ -115,7 +115,7 @@ async function loadManagers() {
       'Schweddy Ballers':'Joseph',"Konys Child Soldiers":'Joseph',"Joe's Neckbeards":'Joseph',
       '2 Gurleys 1 Cup':'Evan','Sergio Dipp':'Evan',
       'Donkey Punch':'JR',"Suckin' Daddy's D":'Travis','The T.O. Show':'Travis',
-      "Egbuka's Brown Burrow":'Gary','LAPORTA PARTY':'Gary',
+      "Egbuka's Brown Burrow":'Gary','LAPORTA PARTY':'Gary','ishyaCOWboy':'Evan','Suck My C.Johnson':'Wes','My Team is Terrible':'Murph','Joe Montainya':'Murph',
       "Chase'n Jayden":'Murph','Jerry had a lil Lamb':'Murph',
       "Jeremy's Dazzling Team":'Murph','Not Worthy. My Pickens Hurts':'Murph',
       '17-7 Suck it!':'Jeff','CraigersCrew':'Jeff','A Kolb Day in Hell':'Jeff',

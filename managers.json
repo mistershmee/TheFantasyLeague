@@ -1,11 +1,6 @@
 {
   "_readme": "Source of truth for all manager → team name mappings. Edit this file to fix attribution errors. analysis.js reads this at load time.",
-  "_unresolved": [
-    "Joe Montainya (2013) — unknown manager",
-    "My Team is Terrible (2012) — unknown manager",
-    "Suck My C.Johnson (2010) — unknown manager, finished 5th (10-3)",
-    "ishyaCOWboy (2010) — unknown manager, finished 10th (4-9)"
-  ],
+  "_unresolved": [],
   "_api_name_map": {
     "_note": "Maps the API manager_field value to the display name used in this file. Update here when a display name changes.",
     "Chris T": "Chris T",
@@ -598,6 +593,12 @@
           "years": [
             "2021"
           ]
+        },
+        {
+          "name": "Suck My C.Johnson",
+          "years": [
+            "2010"
+          ]
         }
       ]
     },
@@ -651,6 +652,12 @@
             "2020",
             "2021",
             "2022"
+          ]
+        },
+        {
+          "name": "ishyaCOWboy",
+          "years": [
+            "2010"
           ]
         }
       ]
@@ -779,42 +786,18 @@
           "years": [
             "2025"
           ]
-        }
-      ]
-    },
-    {
-      "id": "unknown",
-      "name": "Unknown",
-      "api_name": null,
-      "_note": "TODO: confirm with league members who managed these teams.",
-      "teams": [
-        {
-          "name": "Joe Montainya",
-          "years": [
-            "2013"
-          ],
-          "_note": "Unknown — 6-7, 8th place"
         },
         {
           "name": "My Team is Terrible",
           "years": [
             "2012"
-          ],
-          "_note": "Unknown — 3-9, 13th place"
+          ]
         },
         {
-          "name": "Suck My C.Johnson",
+          "name": "Joe Montainya",
           "years": [
-            "2010"
-          ],
-          "_note": "Unknown — 10-3, 5th place"
-        },
-        {
-          "name": "ishyaCOWboy",
-          "years": [
-            "2010"
-          ],
-          "_note": "Unknown — 4-9, 10th place"
+            "2013"
+          ]
         }
       ]
     }
