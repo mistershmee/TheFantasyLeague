@@ -279,6 +279,7 @@ canvas { display: block; }
     <div class="tab" onclick="sw('draft',this)">Draft</div>
     <div class="tab" onclick="sw('evo',this)">Team Evolution</div>
     <div class="tab" onclick="sw('bench',this)">Bench Sits</div>
+    <div class="tab" onclick="sw('scorers',this)">Top Scorers</div>
     <div class="tab" onclick="sw('power',this)">Power Index</div>
     <div class="tab" onclick="sw('h2h',this)">Head to Head</div>
   </div>
@@ -370,10 +371,17 @@ canvas { display: block; }
       <div id="trades-fair"></div>
     </div>
   </div>
-  <div class="card">
-    <div class="card-title">All-Time Trade Value — VOR Adjusted</div>
-    <div class="vor-note">📊 VOR-adjusted: accounts for positional scarcity. A RB scoring 200 pts is worth more than a QB at 200 pts because fewer elite RBs are available. Replacement levels: QB12, RB36, WR36, TE14, DEF12, K12.</div>
-    <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Manager</th><th>Trades</th><th>VOR Received</th><th>VOR Given</th><th>Net VOR</th></tr></thead><tbody id="trade-vor-tb"></tbody></table></div>
+  <div class="two">
+    <div class="card">
+      <div class="card-title">All-Time Trade Value — Full Season VOR</div>
+      <div class="vor-note">📊 Total season VOR for every player traded, regardless of when the trade happened.</div>
+      <div style="overflow-x:auto"><table class="tbl tbl-sm"><thead><tr><th>Manager</th><th>Trades</th><th>VOR Recv</th><th>VOR Given</th><th>Net</th></tr></thead><tbody id="trade-vor-tb"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Post-Trade VOR — Points After Trade Only</div>
+      <div class="vor-note">📊 Only counts points scored after the trade date. Shows true value of what each manager acquired.</div>
+      <div style="overflow-x:auto"><table class="tbl tbl-sm"><thead><tr><th>Manager</th><th>Trades</th><th>VOR Recv</th><th>VOR Given</th><th>Net</th></tr></thead><tbody id="post-trade-tb"></tbody></table></div>
+    </div>
   </div>
 </div>
 
@@ -428,6 +436,16 @@ canvas { display: block; }
 
 <!-- EVOLUTION -->
 <div id="pnl-evo" class="pnl">
+  <!-- Weekly Power Ranking Trend -->
+  <div class="card" style="margin-bottom:20px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div class="card-title" style="margin-bottom:0">Season Power Ranking Trajectory</div>
+      <select id="evo-year-sel" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Cumulative standings rank after each week. Lower is better. Shows who climbed and who faded.</p>
+    <div style="position:relative;height:280px"><canvas id="evoC"></canvas></div>
+  </div>
+
   <div class="filter-row">
     <span class="filter-label">Position Filter:</span>
     <button class="fbtn on" onclick="setEP('all',this)">All</button>
@@ -439,14 +457,14 @@ canvas { display: block; }
     <button class="fbtn" onclick="setEP('K',this)">K</button>
     <button class="fbtn" onclick="setEP('DEF',this)">DEF</button>
   </div>
-  <div class="card">
+  <div class="card" style="margin-bottom:20px">
     <div class="card-title">Career Waiver Activity</div>
     <div style="overflow-x:auto"><table class="tbl tbl-sm"><thead><tr id="waiver-career-hdr"></tr></thead><tbody id="waiver-career-tb"></tbody></table></div>
   </div>
   <div class="two">
     <div class="card">
       <div class="card-title">Best Team Evolution</div>
-      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Biggest improvement from draft ranking to final standing.</p>
+      <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Biggest climb from draft ranking to final season ranking.</p>
       <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Manager</th><th>Team</th><th>Draft</th><th>Final</th><th>Δ</th></tr></thead><tbody id="evo-best-tb"></tbody></table>
     </div>
     <div class="card">
@@ -520,6 +538,37 @@ canvas { display: block; }
     <div style="overflow-x:auto">
       <table class="tbl"><thead><tr id="bench-mgr-hdr"></tr></thead><tbody id="bench-mgr-tb"></tbody></table>
     </div>
+  </div>
+</div>
+
+<!-- TOP SCORERS -->
+<div id="pnl-scorers" class="pnl">
+  <div class="metrics" id="scorers-metrics"></div>
+  <div class="filter-row">
+    <span class="filter-label">Manager:</span>
+    <select id="scorers-mgr" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+    <div class="sep"></div>
+    <span class="filter-label">Position:</span>
+    <button class="fbtn on" onclick="setScorerPos('all',this)">All</button>
+    <button class="fbtn" onclick="setScorerPos('QB',this)">QB</button>
+    <button class="fbtn" onclick="setScorerPos('RB',this)">RB</button>
+    <button class="fbtn" onclick="setScorerPos('WR',this)">WR</button>
+    <button class="fbtn" onclick="setScorerPos('TE',this)">TE</button>
+    <button class="fbtn" onclick="setScorerPos('K',this)">K</button>
+    <button class="fbtn" onclick="setScorerPos('DEF',this)">DEF</button>
+    <div class="sep"></div>
+    <span class="filter-label">Season:</span>
+    <select id="scorers-year" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+    <div class="sep"></div>
+    <button class="fbtn on" onclick="setScorerStatus('all',this)">All</button>
+    <button class="fbtn" onclick="setScorerStatus('started',this)">Started Only</button>
+    <button class="fbtn" onclick="setScorerStatus('benched',this)">Benched Only</button>
+  </div>
+  <div class="card" style="overflow-x:auto">
+    <div class="card-title">Top 20 Single-Week Performances</div>
+    <table class="tbl tbl-sm"><thead><tr>
+      <th>Rank</th><th>Year</th><th>Wk</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pts</th><th>Status</th>
+    </tr></thead><tbody id="scorers-tb"></tbody></table>
   </div>
 </div>
 
@@ -788,6 +837,8 @@ const STATIC = {
 let A; // analysis results
 let draftFormat = 'all', draftPos = 'all', evoPos = 'all', h2hMode = 'total';
 let benchPos = 'all', benchMgr = 'all', benchYear = 'all';
+let scorerPos = 'all', scorerMgr = 'all', scorerYear = 'all', scorerStatus = 'all';
+let evoYear = null;
 let benchMgrSort = { col: 'missed', asc: false };
 let recapYear = null, recapWeek = null;
 let mgrSort = { col: 'winPct', asc: false };
@@ -800,7 +851,8 @@ const $  = id => document.getElementById(id);
 const sw = (id, el) => {
   document.querySelectorAll('.pnl').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
-  $(  `pnl-${id}`).classList.add('on'); el.classList.add('on');
+  $(`pnl-${id}`).classList.add('on'); el.classList.add('on');
+  if (id === 'evo') buildEvoChart();
 };
 
 function bar(pct, color, height = 6) {
@@ -1034,13 +1086,22 @@ function buildTrades() {
   $('trades-lopsided').innerHTML = tradeCards(STATIC.tradeLopsided);
   $('trades-fair').innerHTML = tradeCards(STATIC.tradeFair);
 
-  // VOR diff table
+  // Full-season VOR diff table
   $('trade-vor-tb').innerHTML = A.tradeDiff.map(r => `<tr>
     <td>${mgrDot(r.m)}<strong>${r.m}</strong></td>
     <td style="color:var(--text3);font-family:var(--font-mono)">${r.trades}</td>
     <td style="font-family:var(--font-mono)">${r.recv.toLocaleString()}</td>
     <td style="font-family:var(--font-mono)">${r.given.toLocaleString()}</td>
     <td><span class="bdg ${r.net>=0?'bdg-pos':'bdg-neg'}">${r.net>=0?'+':''}${r.net.toLocaleString()}</span></td>
+  </tr>`).join('');
+
+  // Post-trade VOR table
+  $('post-trade-tb').innerHTML = A.postTradeSummary.map(r => `<tr>
+    <td>${mgrDot(r.m)}<strong>${r.m}</strong></td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${r.trades}</td>
+    <td style="font-family:var(--font-mono)">${r.recv.toFixed(1)}</td>
+    <td style="font-family:var(--font-mono)">${r.given.toFixed(1)}</td>
+    <td><span class="bdg ${r.net>=0?'bdg-pos':'bdg-neg'}">${r.net>=0?'+':''}${r.net.toFixed(1)}</span></td>
   </tr>`).join('');
 }
 
@@ -1546,7 +1607,7 @@ function renderBench() {
   `;
 
   // Top 10 worst sits table
-  $('bench-sits-tb').innerHTML = filtered.slice(0, 10).map(s => `<tr>
+  $('bench-sits-tb').innerHTML = filtered.slice(0, 20).map(s => `<tr>
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.y}</td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.wk}</td>
     <td>${mgrDot(s.m)}${s.m}</td>
@@ -1650,6 +1711,165 @@ function filterBenchToMgr(mgr) {
   renderBench();
 }
 
+// ─── TEAM EVOLUTION ───────────────────────────────────────────────────────────
+function buildEvoChart() {
+  const yearSel = $('evo-year-sel');
+  if (!yearSel.options.length) {
+    const evYears = Object.keys(A.weeklyPowerRankings).sort((a,b)=>b-a);
+    evYears.forEach(yr => {
+      const o = document.createElement('option');
+      o.value = yr; o.textContent = yr;
+      yearSel.appendChild(o);
+    });
+    evoYear = evYears[0];
+    yearSel.value = evoYear;
+    yearSel.addEventListener('change', () => { evoYear = yearSel.value; renderEvoChart(); });
+  }
+  renderEvoChart();
+}
+
+function renderEvoChart() {
+  const rankData = A.weeklyPowerRankings[evoYear] || {};
+  const weeks = Object.keys(rankData).map(Number).sort((a,b)=>a-b);
+  if (!weeks.length) return;
+
+  // Get all managers who appear
+  const mgrs = [...new Set(Object.values(rankData).flatMap(wk => wk.map(r=>r.mgr)))];
+  // Only show core managers on the chart to keep it readable
+  const chartMgrs = mgrs.filter(m => ALL_MGRS.includes(m)).slice(0, 12);
+
+  const datasets = chartMgrs.map(mgr => {
+    const color = A.mgrColors[mgr] || '#888';
+    const data = weeks.map(wk => {
+      const entry = (rankData[wk] || []).find(r => r.mgr === mgr);
+      return entry ? entry.rank : null;
+    });
+    return {
+      label: mgr, data, borderColor: color,
+      backgroundColor: color + '15',
+      borderWidth: 2, pointRadius: 3,
+      pointBackgroundColor: color,
+      tension: 0.2, fill: false,
+      spanGaps: true,
+    };
+  });
+
+  const ctx = $('evoC');
+  if (ctx._chart) ctx._chart.destroy();
+  ctx._chart = new Chart(ctx, {
+    type: 'line',
+    data: { labels: weeks.map(w => `Wk ${w}`), datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true, position: 'right',
+          labels: { color: '#9898a6', font: { size: 10, family: 'Inter' }, boxWidth: 12, padding: 8 }
+        },
+        tooltip: { backgroundColor:'#1c1c21', titleColor:'#f0f0f2', bodyColor:'#9898a6', borderColor:'#ffffff20', borderWidth:1 }
+      },
+      scales: {
+        y: {
+          reverse: true, // rank 1 at top
+          min: 1,
+          ticks: { stepSize: 1, color:'#5a5a6e', font:{size:10}, callback: v => `#${v}` },
+          grid: { color:'#ffffff08' },
+          title: { display: true, text: 'Rank', color:'#5a5a6e', font:{size:10} }
+        },
+        x: { ticks: { color:'#5a5a6e', font:{size:10} }, grid: { color:'#ffffff08' } }
+      }
+    }
+  });
+}
+
+// ─── TOP SCORERS ───────────────────────────────────────────────────────────────
+function buildScorers() {
+  // Populate manager filter
+  const mgrSel = $('scorers-mgr');
+  mgrSel.innerHTML = '<option value="all">All Managers</option>';
+  const mgrsWithData = [...new Set(A.topPerformances.map(p => p.m))].sort();
+  mgrsWithData.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m; o.textContent = m;
+    mgrSel.appendChild(o);
+  });
+  mgrSel.addEventListener('change', () => { scorerMgr = mgrSel.value; renderScorers(); });
+
+  // Populate year filter
+  const yearSel = $('scorers-year');
+  yearSel.innerHTML = '<option value="all">All Seasons</option>';
+  const years = [...new Set(A.topPerformances.map(p => p.y))].sort().reverse();
+  years.forEach(y => {
+    const o = document.createElement('option');
+    o.value = y; o.textContent = y;
+    yearSel.appendChild(o);
+  });
+  yearSel.addEventListener('change', () => { scorerYear = yearSel.value; renderScorers(); });
+
+  renderScorers();
+}
+
+const setScorerPos    = (p,el) => { scorerPos=p;    document.querySelectorAll('[onclick^="setScorerPos"]').forEach(b=>b.classList.remove('on'));    el.classList.add('on'); renderScorers(); };
+const setScorerStatus = (s,el) => { scorerStatus=s; document.querySelectorAll('[onclick^="setScorerStatus"]').forEach(b=>b.classList.remove('on')); el.classList.add('on'); renderScorers(); };
+
+function renderScorers() {
+  const filtered = A.topPerformances.filter(p =>
+    (scorerPos    === 'all'     || p.pos === scorerPos) &&
+    (scorerMgr    === 'all'     || p.m   === scorerMgr) &&
+    (scorerYear   === 'all'     || p.y   === scorerYear) &&
+    (scorerStatus === 'all'     || (scorerStatus === 'started' ? p.started : !p.started))
+  );
+
+  // Metrics
+  const total      = filtered.length;
+  const highest    = filtered[0];
+  const benchedTop = filtered.filter(p => !p.started);
+  const mgr_apps   = {};
+  for (const p of filtered.slice(0,500)) mgr_apps[p.m] = (mgr_apps[p.m]||0)+1;
+  const topMgr     = Object.entries(mgr_apps).sort((a,b)=>b[1]-a[1])[0];
+  const benchedPct = total ? Math.round(filtered.slice(0,100).filter(p=>!p.started).length) : 0;
+
+  $('scorers-metrics').innerHTML = `
+    <div class="metric">
+      <div class="metric-val">${highest ? highest.pts.toFixed(1) : '—'}</div>
+      <div class="metric-lbl">Highest Single Week</div>
+      <div class="metric-sub">${highest ? `${highest.p} · ${highest.y} Wk${highest.wk}` : ''}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val">${topMgr ? topMgr[1] : '—'}</div>
+      <div class="metric-lbl">Most Top-500 Appearances</div>
+      <div class="metric-sub">${topMgr ? topMgr[0] : ''}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val">${benchedTop.length ? benchedTop[0].pts.toFixed(1) : '—'}</div>
+      <div class="metric-lbl">Highest Benched Performance</div>
+      <div class="metric-sub">${benchedTop[0] ? `${benchedTop[0].p} · ${benchedTop[0].y} Wk${benchedTop[0].wk}` : ''}</div>
+    </div>
+    <div class="metric">
+      <div class="metric-val">${benchedPct}</div>
+      <div class="metric-lbl">Benched in Top 100</div>
+      <div class="metric-sub">performances left on bench</div>
+    </div>
+  `;
+
+  // Table
+  $('scorers-tb').innerHTML = filtered.slice(0,20).map((p,i) => {
+    const startBdg = p.started
+      ? '<span class="bdg bdg-pos">Started</span>'
+      : '<span class="bdg bdg-neg">Benched</span>';
+    return `<tr>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${i+1}</td>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${p.y}</td>
+      <td style="font-family:var(--font-mono);color:var(--text3)">${p.wk}</td>
+      <td style="font-weight:600">${p.p}</td>
+      <td>${posBdg(p.pos)}</td>
+      <td>${mgrDot(p.m)}${p.m}</td>
+      <td><strong style="font-family:var(--font-mono);color:var(--green);font-size:14px">${p.pts.toFixed(1)}</strong></td>
+      <td>${startBdg}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="8" style="color:var(--text3);text-align:center;padding:20px">No results match this filter</td></tr>';
+}
+
 // ─── BOOT ─────────────────────────────────────────────────────────────────────
 async function boot() {
   try {
@@ -1684,6 +1904,7 @@ async function boot() {
     buildRecap();
     buildMgr();
     buildBench();
+    buildScorers();
     buildLuck();
     buildTrades();
     renderDraft();

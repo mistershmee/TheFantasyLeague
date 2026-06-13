@@ -649,6 +649,134 @@ function runAnalysis(rawData) {
     }
   }
 
+  // ── WEEKLY POWER RANKINGS (for Team Evolution tab) ──────────────────────────
+  const weeklyPowerRankings = {};
+  for (const year of years) {
+    const reg = (seasons[year].matchups || []).filter(m => !m.is_playoffs && !m.is_consolation);
+    const wks = [...new Set(reg.map(m => m.week))].sort((a,b) => a-b);
+    const cumPts = {}, cumWins = {};
+    weeklyPowerRankings[year] = {};
+
+    for (const wk of wks) {
+      for (const m of reg.filter(x => x.week === wk)) {
+        const m1 = resolveManager(m.team1_manager, m.team1_name);
+        const m2 = resolveManager(m.team2_manager, m.team2_name);
+        cumPts[m1] = (cumPts[m1]||0) + m.team1_points;
+        cumPts[m2] = (cumPts[m2]||0) + m.team2_points;
+        if (m.team1_points > m.team2_points) cumWins[m1] = (cumWins[m1]||0)+1;
+        else cumWins[m2] = (cumWins[m2]||0)+1;
+      }
+      const ranked = Object.keys(cumPts).sort((a,b) =>
+        (cumWins[b]||0) - (cumWins[a]||0) || cumPts[b] - cumPts[a]
+      );
+      weeklyPowerRankings[year][wk] = ranked.map((mgr, i) => ({
+        mgr, rank: i+1, wins: cumWins[mgr]||0, pts: +cumPts[mgr].toFixed(1)
+      }));
+    }
+  }
+
+  // ── POST-TRADE VOR ───────────────────────────────────────────────────────────
+  // Season approximate start timestamps (Unix)
+  const SEASON_STARTS = {
+    '2009':1252454400,'2010':1283990400,'2011':1315526400,'2012':1347062400,
+    '2013':1378598400,'2014':1410134400,'2015':1441670400,'2016':1473206400,
+    '2017':1504742400,'2018':1536278400,'2019':1567814400,'2020':1599350400,
+    '2021':1630886400,'2022':1662422400,'2023':1693958400,'2024':1725494400,
+    '2025':1757030400,
+  };
+
+  // Build player weekly pts from roster data
+  const playerWeeklyPts = {};
+  for (const year of years) {
+    const wr = seasons[year].weekly_rosters || {};
+    for (const [week, weekData] of Object.entries(wr)) {
+      for (const [tk, team] of Object.entries(weekData)) {
+        for (const p of [...(team.starters||[]), ...(team.bench||[])]) {
+          if (!p.points) continue;
+          if (!playerWeeklyPts[p.name]) playerWeeklyPts[p.name] = {};
+          if (!playerWeeklyPts[p.name][year]) playerWeeklyPts[p.name][year] = {};
+          playerWeeklyPts[p.name][year][+week] = p.points;
+        }
+      }
+    }
+  }
+
+  const postTradeDiff = {};
+  for (const mgr of ALL_MANAGERS) postTradeDiff[mgr] = { vorRecv:0, vorGiven:0, trades:0 };
+
+  for (const year of years) {
+    const reg = (seasons[year].matchups||[]).filter(m => !m.is_playoffs && !m.is_consolation);
+    const regWeeks = [...new Set(reg.map(m => m.week))].sort((a,b)=>a-b);
+    const maxWk = regWeeks[regWeeks.length-1] || 17;
+    const seasonStart = SEASON_STARTS[year] || 0;
+
+    for (const txn of seasons[year].transactions || []) {
+      if (txn.type !== 'trade') continue;
+      const ts = +txn.timestamp || 0;
+      const tradeWeek = seasonStart && ts
+        ? Math.min(Math.max(1, Math.ceil((ts - seasonStart) / 604800)), maxWk)
+        : 1;
+
+      const sides = {};
+      let valid = true;
+      for (const p of txn.players || []) {
+        const dest = p.dest_team_name; const src = p.source_team_name;
+        if (!dest || !src) { valid=false; break; }
+        const weekly = playerWeeklyPts[p.player_name]?.[year] || {};
+        const postPts = Object.entries(weekly)
+          .filter(([wk]) => +wk > tradeWeek)
+          .reduce((s,[,pts]) => s+pts, 0);
+        const vor = getVOR(postPts, p.position, year);
+        if (!sides[dest]) sides[dest] = { vor:0, pts:0 };
+        sides[dest].vor += vor;
+        sides[dest].pts += postPts;
+      }
+      if (!valid || Object.keys(sides).length < 2) continue;
+
+      for (const [dest, info] of Object.entries(sides)) {
+        const mgr = TEAM_TO_MANAGER[dest];
+        if (!mgr || !postTradeDiff[mgr]) continue;
+        const vorGiven = Object.entries(sides).filter(([dt]) => dt!==dest).reduce((s,[,v])=>s+v.vor,0);
+        postTradeDiff[mgr].vorRecv += info.vor;
+        postTradeDiff[mgr].vorGiven += vorGiven;
+        postTradeDiff[mgr].trades++;
+      }
+    }
+  }
+
+  const postTradeSummary = ALL_MANAGERS
+    .filter(m => postTradeDiff[m]?.trades > 0)
+    .map(m => ({
+      m, trades: postTradeDiff[m].trades,
+      recv: +postTradeDiff[m].vorRecv.toFixed(1),
+      given: +postTradeDiff[m].vorGiven.toFixed(1),
+      net: +(postTradeDiff[m].vorRecv - postTradeDiff[m].vorGiven).toFixed(1),
+    }))
+    .sort((a,b) => b.net - a.net);
+
+  // ── TOP SCORING WEEKLY PERFORMANCES ──────────────────────────────────────────
+  const topPerformances = [];
+  for (const year of years) {
+    const wr = seasons[year].weekly_rosters || {};
+    for (const [week, weekData] of Object.entries(wr)) {
+      for (const [tk, team] of Object.entries(weekData)) {
+        const tname = team.team_name || '';
+        const mgr = resolveManager(null, tname) || tname;
+        for (const p of [...(team.starters||[]), ...(team.bench||[])]) {
+          if (!p.points || p.points <= 0) continue;
+          const started = !['BN','IR','IR+','NA'].includes(p.selected_position);
+          topPerformances.push({
+            y: year, wk: +week, m: mgr, t: tname,
+            p: p.name, pos: p.position, pts: p.points,
+            started, slot: p.selected_position,
+          });
+        }
+      }
+    }
+  }
+  topPerformances.sort((a,b) => b.pts - a.pts);
+
+  // ── BENCH SITS ────────────────────────────────────────────────────────────
   // ── BENCH SITS ────────────────────────────────────────────────────────────
   const benchSits = [];
   const benchMgrStats = {};
@@ -726,6 +854,7 @@ function runAnalysis(rawData) {
     h2h, snakeDrafts, auctionDrafts, avgVORByPos,
     seasonPI, careerPI, tradeDiff, waiverCareer, weeklyRecaps,
     benchSits, benchMgrSummary, worstBenchWeeks,
+    weeklyPowerRankings, postTradeSummary, topPerformances,
     replLevel, mgrColors: MGR_COLORS, lastActive: MGR_LAST_ACTIVE,
   };
 }
