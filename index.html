@@ -1324,6 +1324,14 @@ function renderEvo() {
 
   // Use new post-transaction VOR data
   const pickupData = A.bestPickups || [];
+  const wRow = (w, good) => `<tr class="${w.y === A.currentYear && showCurrentHighlight('all') ? 'current-season' : ''}">
+    <td style="font-family:var(--font-mono);color:var(--text3)">${w.y}</td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${w.wk}</td>
+    <td style="font-weight:600">${w.p}</td>
+    <td>${posBdg(w.pos)}</td>
+    <td>${mgrDot(w.m)}${w.m}</td>
+    <td><span class="bdg ${good?'bdg-pos':'bdg-neg'}">${good?'+':''}${w.vor}</span></td>
+  </tr>`;
   const dropData   = A.worstDrops  || [];
 
   function posMatchW(pos) {
