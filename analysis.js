@@ -600,7 +600,7 @@ function runAnalysis(rawData) {
           if (!seenPickup.has(key)) {
             seenPickup.add(key);
             bestPickups.push({
-              y: year, wk: txnWeek, p: pname, pos, mgr,
+              y: year, wk: txnWeek, p: pname, pos, m: mgr,
               pts: +postPts.toFixed(1), vor: +postVOR.toFixed(1),
             });
           }
@@ -611,7 +611,7 @@ function runAnalysis(rawData) {
           if (!seenDrop.has(key)) {
             seenDrop.add(key);
             worstDrops.push({
-              y: year, wk: txnWeek, p: pname, pos, mgr,
+              y: year, wk: txnWeek, p: pname, pos, m: mgr,
               pts: +postPts.toFixed(1), vor: +postVOR.toFixed(1),
             });
           }
