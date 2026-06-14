@@ -537,6 +537,93 @@ function runAnalysis(rawData) {
       rb: pos.RB||0, wr: pos.WR||0, te: pos.TE||0, qb: pos.QB||0, def: pos.DEF||0, k: pos.K||0 };
   }).sort((a, b) => b.total - a.total);
 
+  // ── BEST PICKUPS & WORST DROPS — POST-TRANSACTION VOR ───────────────────────
+  // Build player weekly pts lookup from roster data
+  const playerWkPts = {};
+  for (const year of years) {
+    const wr = seasons[year].weekly_rosters || {};
+    for (const [week, weekData] of Object.entries(wr)) {
+      for (const [tk, team] of Object.entries(weekData)) {
+        for (const p of [...(team.starters||[]), ...(team.bench||[])]) {
+          if (!p.points) continue;
+          if (!playerWkPts[p.name]) playerWkPts[p.name] = {};
+          if (!playerWkPts[p.name][year]) playerWkPts[p.name][year] = {};
+          playerWkPts[p.name][year][+week] = p.points;
+        }
+      }
+    }
+  }
+
+  const SEASON_STARTS_W = {
+    '2009':1252454400,'2010':1283990400,'2011':1315526400,'2012':1347062400,
+    '2013':1378598400,'2014':1410134400,'2015':1441670400,'2016':1473206400,
+    '2017':1504742400,'2018':1536278400,'2019':1567814400,'2020':1599350400,
+    '2021':1630886400,'2022':1662422400,'2023':1693958400,'2024':1725494400,
+    '2025':1757030400,
+  };
+
+  function tsToWeek(ts, year) {
+    const start = SEASON_STARTS_W[year] || 0;
+    if (!ts || !start) return 1;
+    return Math.min(Math.max(1, Math.ceil((+ts - start) / 604800)), 17);
+  }
+
+  const bestPickups = [];
+  const worstDrops  = [];
+  const seenPickup  = new Set();  // deduplicate same player+year
+  const seenDrop    = new Set();
+
+  for (const year of years) {
+    const standings = seasons[year].standings || [];
+    const teamMgr = {};
+    for (const t of standings) teamMgr[t.name] = resolveManager(t.manager, t.name);
+
+    for (const txn of seasons[year].transactions || []) {
+      const ts = txn.timestamp;
+      const txnWeek = tsToWeek(ts, year);
+
+      for (const p of txn.players || []) {
+        const pos = p.position;
+        if (!pos || !REPL_RANK[pos]) continue;
+        const pname = p.player_name || '?';
+
+        const weekly = playerWkPts[pname]?.[year] || {};
+        const postPts = Object.entries(weekly)
+          .filter(([wk]) => +wk > txnWeek)
+          .reduce((s,[,pts]) => s + pts, 0);
+        const postVOR = getVOR(postPts, pos, year);
+
+        if (p.type === 'add') {
+          const dest = p.dest_team_name || '';
+          const mgr  = teamMgr[dest] || TEAM_TO_MANAGER[dest] || dest;
+          const key  = `${pname}_${year}_${mgr}`;
+          if (!seenPickup.has(key)) {
+            seenPickup.add(key);
+            bestPickups.push({
+              y: year, wk: txnWeek, p: pname, pos, mgr,
+              pts: +postPts.toFixed(1), vor: +postVOR.toFixed(1),
+            });
+          }
+        } else if (p.type === 'drop') {
+          const src  = p.source_team_name || '';
+          const mgr  = teamMgr[src] || TEAM_TO_MANAGER[src] || src;
+          const key  = `${pname}_${year}_${mgr}`;
+          if (!seenDrop.has(key)) {
+            seenDrop.add(key);
+            worstDrops.push({
+              y: year, wk: txnWeek, p: pname, pos, mgr,
+              pts: +postPts.toFixed(1), vor: +postVOR.toFixed(1),
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Sort by post-transaction VOR
+  bestPickups.sort((a,b) => b.vor - a.vor);
+  worstDrops.sort((a,b) => b.vor - a.vor);
+
   // ── WEEKLY RECAPS ─────────────────────────────────────────────────────────
   // Arrow function declared once outside the loop — avoids strict-mode issues
   const buildDiffs = (matches, bracket) => matches.map(m => {
@@ -1017,10 +1104,12 @@ function runAnalysis(rawData) {
     h2h, snakeDrafts, auctionDrafts, avgVORByPos,
     seasonPI, careerPI, tradeDiff, waiverCareer, weeklyRecaps,
     benchSits, benchMgrSummary, worstBenchWeeks,
+    bestPickups, worstDrops,
     weeklyPowerRankings, postTradeSummary, topPerformances,
     allPicksVOE, bestPicksVOE, worstPicksVOE, mgrVOESummary,
     bestDrafts, worstDrafts,
     replLevel, mgrColors: MGR_COLORS, lastActive: MGR_LAST_ACTIVE,
+    currentYear: years[years.length - 1],
   };
 }
 

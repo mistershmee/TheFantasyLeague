@@ -502,13 +502,13 @@ canvas { display: block; }
   <div class="two">
     <div class="card">
       <div class="card-title">Best Waiver Pickups All-Time</div>
-      <div class="note">⚠️ Based on full-season pts — midseason pickups may be overstated. Week-by-week solution in progress.</div>
-      <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pts</th></tr></thead><tbody id="waiver-best-tb"></tbody></table>
+      <div class="note">📊 VOR-adjusted, post-add only — points scored after the pickup date. Deduped per player per manager per season.</div>
+      <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Wk</th><th>Player</th><th>Pos</th><th>Manager</th><th>Post-Add VOR</th></tr></thead><tbody id="waiver-best-tb"></tbody></table>
     </div>
     <div class="card">
       <div class="card-title">Worst Drops All-Time</div>
-      <div class="note">⚠️ Based on full-season pts — actual post-drop value may differ. Week-by-week solution in progress.</div>
-      <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Player</th><th>Pos</th><th>Manager</th><th>Pts</th></tr></thead><tbody id="drop-worst-tb"></tbody></table>
+      <div class="note">📊 VOR-adjusted, post-drop only — points the dropped player scored after being released. Higher = more painful mistake.</div>
+      <table class="tbl tbl-sm"><thead><tr><th>Year</th><th>Wk</th><th>Player</th><th>Pos</th><th>Manager</th><th>Post-Drop VOR</th></tr></thead><tbody id="drop-worst-tb"></tbody></table>
     </div>
   </div>
 </div>
@@ -1049,14 +1049,14 @@ function buildLuck() {
   const best = sorted.filter(s => ALL_MGRS.includes(s.mgr)).slice(0, 10);
   const worst = [...sorted].reverse().filter(s => ALL_MGRS.includes(s.mgr)).slice(0, 10);
 
-  $('luck-best-tb').innerHTML = best.map(s => `<tr class="${s.year === '2025' ? 'current-season' : ''}">
+  $('luck-best-tb').innerHTML = best.map(s => `<tr class="${s.year === A.currentYear ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.year}</td>
     <td>${mgrDot(s.mgr)}${s.mgr}</td>
     <td style="color:var(--text3);font-size:11px">${s.team}</td>
     <td><span class="bdg bdg-pos">+${s.luck}</span></td>
   </tr>`).join('');
 
-  $('luck-worst-tb').innerHTML = worst.map(s => `<tr class="${s.year === '2025' ? 'current-season' : ''}">
+  $('luck-worst-tb').innerHTML = worst.map(s => `<tr class="${s.year === A.currentYear ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.year}</td>
     <td>${mgrDot(s.mgr)}${s.mgr}</td>
     <td style="color:var(--text3);font-size:11px">${s.team}</td>
@@ -1181,7 +1181,7 @@ function renderDraft() {
 
   function voeRow(p) {
     const voeColor = p.voe >= 0 ? 'var(--green)' : 'var(--red)';
-    return `<tr class="${p.year === '2025' ? 'current-season' : ''}">
+    return `<tr class="${p.year === A.currentYear ? 'current-season' : ''}">
       <td style="font-family:var(--font-mono);color:var(--text3)">${p.year}</td>
       <td style="font-family:var(--font-mono);color:var(--text3)">${slotLabel(p)}</td>
       <td>${posBdg(p.pos)}</td>
@@ -1249,7 +1249,7 @@ function renderDraft() {
 
   function draftRow(dr, rank) {
     const fmt = dr.format === 'snake' ? '🐍 Snake' : '💰 Auction';
-    return `<tr class="${dr.year === '2025' ? 'current-season' : ''}">
+    return `<tr class="${dr.year === A.currentYear ? 'current-season' : ''}">
       <td style="font-family:var(--font-mono);color:var(--text3)">#${rank}</td>
       <td style="font-family:var(--font-mono);color:var(--text3)">${dr.year}</td>
       <td style="font-size:11px">${fmt}</td>
@@ -1321,15 +1321,30 @@ function renderEvo() {
   // Waiver pickups/drops
   const filtWB = STATIC.waiverBest.filter(w => posMatch(w.pos, evoPos)).slice(0, 10);
   const filtDW = STATIC.dropWorst.filter(w => posMatch(w.pos, evoPos)).slice(0, 10);
-  const wRow = (w, good) => `<tr>
+  const wRow = (w, good) => `<tr class="${w.y === A.currentYear ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${w.y}</td>
-    <td>${w.p}</td>
+    <td style="font-family:var(--font-mono);color:var(--text3)">${w.wk}</td>
+    <td style="font-weight:600">${w.p}</td>
     <td>${posBdg(w.pos)}</td>
-    <td style="color:var(--text2)">${w.m}</td>
-    <td><span class="bdg ${good?'bdg-pos':'bdg-neg'}">${w.pts}</span></td>
+    <td>${mgrDot(w.m)}${w.m}</td>
+    <td><span class="bdg ${good?'bdg-pos':'bdg-neg'}">${good?'+':''}${w.vor}</span></td>
   </tr>`;
-  $('waiver-best-tb').innerHTML = filtWB.map(w => wRow(w, true)).join('') || `<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No results</td></tr>`;
-  $('drop-worst-tb').innerHTML  = filtDW.map(w => wRow(w, false)).join('') || `<tr><td colspan="5" style="color:var(--text3);text-align:center;padding:16px">No results</td></tr>`;
+
+  // Use new post-transaction VOR data
+  const pickupData = A.bestPickups || [];
+  const dropData   = A.worstDrops  || [];
+
+  function posMatchW(pos) {
+    if (evoPos === 'all') return true;
+    if (evoPos === 'SKILL') return ['WR','RB','TE'].includes(pos);
+    return pos === evoPos;
+  }
+
+  const filtPU = pickupData.filter(w => posMatchW(w.pos)).slice(0, 15);
+  const filtDR = dropData.filter(w => posMatchW(w.pos)).slice(0, 15);
+
+  $('waiver-best-tb').innerHTML = filtPU.map(w => wRow(w, true)).join('')  || `<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No results</td></tr>`;
+  $('drop-worst-tb').innerHTML  = filtDR.map(w => wRow(w, false)).join('') || `<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No results</td></tr>`;
 }
 
 function buildEvo() { renderEvo(); }
@@ -1354,7 +1369,7 @@ function buildPower() {
   const bot10 = [...sorted].reverse().filter(t => ALL_MGRS.includes(t.mgr)).slice(0, 10);
 
   const piRow = (t, color) => `
-    <div class="pi-row${t.year === '2025' ? ' current-season' : ''}" style="border-radius:6px;padding:4px 6px;margin:-4px -6px 4px">
+    <div class="pi-row${t.year === A.currentYear ? ' current-season' : ''}" style="border-radius:6px;padding:4px 6px;margin:-4px -6px 4px">
       <div class="pi-label"><span class="pi-year">${t.year}</span> ${mgrDot(t.mgr)}${t.mgr}</div>
       <div class="pi-track">
         <div class="pi-fill" style="width:${t.pi}%;background:${color}">
@@ -1701,7 +1716,7 @@ function renderBench() {
   `;
 
   // Top 10 worst sits table
-  $('bench-sits-tb').innerHTML = filtered.slice(0, 20).map(s => `<tr class="${s.y === '2025' ? 'current-season' : ''}">
+  $('bench-sits-tb').innerHTML = filtered.slice(0, 20).map(s => `<tr class="${s.y === A.currentYear ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.y}</td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.wk}</td>
     <td>${mgrDot(s.m)}${s.m}</td>
@@ -1721,7 +1736,7 @@ function renderBench() {
     weekMap[k].count++;
   }
   const worstWeeks = Object.values(weekMap).sort((a,b) => b.missed - a.missed).slice(0, 10);
-  $('bench-weeks-tb').innerHTML = worstWeeks.map(w => `<tr class="${w.y === '2025' ? 'current-season' : ''}">
+  $('bench-weeks-tb').innerHTML = worstWeeks.map(w => `<tr class="${w.y === A.currentYear ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${w.y}</td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${w.wk}</td>
     <td>${mgrDot(w.m)}${w.m}</td>
@@ -1948,7 +1963,7 @@ function renderScorers() {
 
   // Table
   $('scorers-tb').innerHTML = filtered.slice(0,20).map((p,i) => {
-    const isCurrent = p.y === '2025';
+    const isCurrent = p.y === A.currentYear;
     const startBdg = p.started
       ? '<span class="bdg bdg-pos">Started</span>'
       : '<span class="bdg bdg-neg">Benched</span>';
