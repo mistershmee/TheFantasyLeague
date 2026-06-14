@@ -876,6 +876,9 @@ let ALL_MGRS = [];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 const $  = id => document.getElementById(id);
+// Returns true only when viewing mixed seasons (not filtered to current season alone)
+const showCurrentHighlight = (activeYearFilter) =>
+  activeYearFilter === 'all' || activeYearFilter !== A.currentYear;
 const sw = (id, el) => {
   document.querySelectorAll('.pnl').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
@@ -1181,7 +1184,7 @@ function renderDraft() {
 
   function voeRow(p) {
     const voeColor = p.voe >= 0 ? 'var(--green)' : 'var(--red)';
-    return `<tr class="${p.year === A.currentYear ? 'current-season' : ''}">
+    return `<tr class="${p.year === A.currentYear && showCurrentHighlight(yearFilter) ? 'current-season' : ''}">
       <td style="font-family:var(--font-mono);color:var(--text3)">${p.year}</td>
       <td style="font-family:var(--font-mono);color:var(--text3)">${slotLabel(p)}</td>
       <td>${posBdg(p.pos)}</td>
@@ -1249,7 +1252,7 @@ function renderDraft() {
 
   function draftRow(dr, rank) {
     const fmt = dr.format === 'snake' ? '🐍 Snake' : '💰 Auction';
-    return `<tr class="${dr.year === A.currentYear ? 'current-season' : ''}">
+    return `<tr class="${dr.year === A.currentYear && showCurrentHighlight(yearFilter) ? 'current-season' : ''}">
       <td style="font-family:var(--font-mono);color:var(--text3)">#${rank}</td>
       <td style="font-family:var(--font-mono);color:var(--text3)">${dr.year}</td>
       <td style="font-size:11px">${fmt}</td>
@@ -1705,7 +1708,7 @@ function renderBench() {
   `;
 
   // Top 10 worst sits table
-  $('bench-sits-tb').innerHTML = filtered.slice(0, 20).map(s => `<tr class="${s.y === A.currentYear ? 'current-season' : ''}">
+  $('bench-sits-tb').innerHTML = filtered.slice(0, 20).map(s => `<tr class="${s.y === A.currentYear && showCurrentHighlight(benchYear) ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.y}</td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${s.wk}</td>
     <td>${mgrDot(s.m)}${s.m}</td>
@@ -1725,7 +1728,7 @@ function renderBench() {
     weekMap[k].count++;
   }
   const worstWeeks = Object.values(weekMap).sort((a,b) => b.missed - a.missed).slice(0, 10);
-  $('bench-weeks-tb').innerHTML = worstWeeks.map(w => `<tr class="${w.y === A.currentYear ? 'current-season' : ''}">
+  $('bench-weeks-tb').innerHTML = worstWeeks.map(w => `<tr class="${w.y === A.currentYear && showCurrentHighlight(benchYear) ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${w.y}</td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${w.wk}</td>
     <td>${mgrDot(w.m)}${w.m}</td>
@@ -1952,7 +1955,7 @@ function renderScorers() {
 
   // Table
   $('scorers-tb').innerHTML = filtered.slice(0,20).map((p,i) => {
-    const isCurrent = p.y === A.currentYear;
+    const isCurrent = p.y === A.currentYear && showCurrentHighlight(scorerYear);
     const startBdg = p.started
       ? '<span class="bdg bdg-pos">Started</span>'
       : '<span class="bdg bdg-neg">Benched</span>';
