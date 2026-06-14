@@ -321,8 +321,17 @@ canvas { display: block; }
 
 <!-- MANAGERS -->
 <div id="pnl-mgr" class="pnl">
-  <div class="card" style="overflow-x:auto">
+  <div class="card" style="overflow-x:auto;margin-bottom:20px">
     <table class="tbl" id="mgr-tbl"><thead><tr id="mgr-hdr"></tr></thead><tbody id="mgr-tb"></tbody></table>
+  </div>
+  <!-- Season Power Ranking Trajectory -->
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+      <div class="card-title" style="margin-bottom:0">Season Power Ranking Trajectory</div>
+      <select id="evo-year-sel" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+    </div>
+    <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Cumulative standings rank after each week. Lower is better. Shows who climbed and who faded.</p>
+    <div style="position:relative;height:280px"><canvas id="evoC"></canvas></div>
   </div>
 </div>
 
@@ -462,18 +471,11 @@ canvas { display: block; }
 
 <!-- EVOLUTION -->
 <div id="pnl-evo" class="pnl">
-  <!-- Weekly Power Ranking Trend -->
-  <div class="card" style="margin-bottom:20px">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
-      <div class="card-title" style="margin-bottom:0">Season Power Ranking Trajectory</div>
-      <select id="evo-year-sel" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:6px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
-    </div>
-    <p style="font-size:11px;color:var(--text3);margin-bottom:12px">Cumulative standings rank after each week. Lower is better. Shows who climbed and who faded.</p>
-    <div style="position:relative;height:280px"><canvas id="evoC"></canvas></div>
-  </div>
-
-  <div class="filter-row">
-    <span class="filter-label">Position Filter:</span>
+  <div class="filter-row" style="margin-bottom:16px">
+    <span class="filter-label">Manager:</span>
+    <select id="evo-mgr-filter" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
+    <div class="sep"></div>
+    <span class="filter-label">Position:</span>
     <button class="fbtn on" onclick="setEP('all',this)">All</button>
     <button class="fbtn" onclick="setEP('SKILL',this)">WR/RB/TE</button>
     <button class="fbtn" onclick="setEP('QB',this)">QB</button>
@@ -482,6 +484,9 @@ canvas { display: block; }
     <button class="fbtn" onclick="setEP('TE',this)">TE</button>
     <button class="fbtn" onclick="setEP('K',this)">K</button>
     <button class="fbtn" onclick="setEP('DEF',this)">DEF</button>
+    <div class="sep"></div>
+    <span class="filter-label">Season:</span>
+    <select id="evo-year-filter" style="background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:5px 10px;border-radius:8px;font-size:12px;font-family:var(--font-body)"></select>
   </div>
   <div class="card" style="margin-bottom:20px">
     <div class="card-title">Career Waiver Activity</div>
@@ -866,7 +871,7 @@ let A; // analysis results
 let draftFormat = 'all', draftPos = 'all', evoPos = 'all', h2hMode = 'total';
 let benchPos = 'all', benchMgr = 'all', benchYear = 'all';
 let scorerPos = 'all', scorerMgr = 'all', scorerYear = 'all', scorerStatus = 'all';
-let evoYear = null;
+let evoYear = null, evoMgr = 'all', evoYearFilter = 'all';
 let benchMgrSort = { col: 'missed', asc: false };
 let recapYear = null, recapWeek = null;
 let mgrSort = { col: 'winPct', asc: false };
@@ -883,7 +888,7 @@ const sw = (id, el) => {
   document.querySelectorAll('.pnl').forEach(p => p.classList.remove('on'));
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('on'));
   $(`pnl-${id}`).classList.add('on'); el.classList.add('on');
-  if (id === 'evo') buildEvoChart();
+  if (id === 'evo' || id === 'mgr') buildEvoChart();
 };
 
 function bar(pct, color, height = 6) {
@@ -1324,7 +1329,7 @@ function renderEvo() {
 
   // Use new post-transaction VOR data
   const pickupData = A.bestPickups || [];
-  const wRow = (w, good) => `<tr class="${w.y === A.currentYear && showCurrentHighlight('all') ? 'current-season' : ''}">
+  const wRow = (w, good) => `<tr class="${w.y === A.currentYear && showCurrentHighlight(evoYearFilter) ? 'current-season' : ''}">
     <td style="font-family:var(--font-mono);color:var(--text3)">${w.y}</td>
     <td style="font-family:var(--font-mono);color:var(--text3)">${w.wk}</td>
     <td style="font-weight:600">${w.p}</td>
@@ -1340,14 +1345,47 @@ function renderEvo() {
     return pos === evoPos;
   }
 
-  const filtPU = pickupData.filter(w => posMatchW(w.pos)).slice(0, 15);
-  const filtDR = dropData.filter(w => posMatchW(w.pos)).slice(0, 15);
+  const filtPU = pickupData.filter(w =>
+    posMatchW(w.pos) &&
+    (evoMgr === 'all' || w.m === evoMgr) &&
+    (evoYearFilter === 'all' || w.y === evoYearFilter)
+  ).slice(0, 15);
+  const filtDR = dropData.filter(w =>
+    posMatchW(w.pos) &&
+    (evoMgr === 'all' || w.m === evoMgr) &&
+    (evoYearFilter === 'all' || w.y === evoYearFilter)
+  ).slice(0, 15);
 
   $('waiver-best-tb').innerHTML = filtPU.map(w => wRow(w, true)).join('')  || `<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No results</td></tr>`;
   $('drop-worst-tb').innerHTML  = filtDR.map(w => wRow(w, false)).join('') || `<tr><td colspan="6" style="color:var(--text3);text-align:center;padding:16px">No results</td></tr>`;
 }
 
-function buildEvo() { renderEvo(); }
+function buildEvo() {
+  // Populate manager filter
+  const mgrSel = $('evo-mgr-filter');
+  if (mgrSel && !mgrSel.options.length) {
+    mgrSel.innerHTML = '<option value="all">All Managers</option>';
+    ALL_MGRS.forEach(m => {
+      const o = document.createElement('option');
+      o.value = m; o.textContent = m;
+      mgrSel.appendChild(o);
+    });
+    mgrSel.addEventListener('change', () => { evoMgr = mgrSel.value; renderEvo(); });
+  }
+  // Populate year filter
+  const yearSel = $('evo-year-filter');
+  if (yearSel && !yearSel.options.length) {
+    yearSel.innerHTML = '<option value="all">All Seasons</option>';
+    const evoYears = [...new Set(A.bestPickups.map(p => p.y))].sort().reverse();
+    evoYears.forEach(y => {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y;
+      yearSel.appendChild(o);
+    });
+    yearSel.addEventListener('change', () => { evoYearFilter = yearSel.value; renderEvo(); });
+  }
+  renderEvo();
+}
 
 // ─── POWER INDEX ──────────────────────────────────────────────────────────────
 const PI_CAREER_HEADERS = [
