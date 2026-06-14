@@ -1318,17 +1318,6 @@ function renderEvo() {
     <td><span class="bdg bdg-neg">${e.d}</span></td>
   </tr>`).join('');
 
-  // Waiver pickups/drops
-  const filtWB = STATIC.waiverBest.filter(w => posMatch(w.pos, evoPos)).slice(0, 10);
-  const filtDW = STATIC.dropWorst.filter(w => posMatch(w.pos, evoPos)).slice(0, 10);
-  const wRow = (w, good) => `<tr class="${w.y === A.currentYear ? 'current-season' : ''}">
-    <td style="font-family:var(--font-mono);color:var(--text3)">${w.y}</td>
-    <td style="font-family:var(--font-mono);color:var(--text3)">${w.wk}</td>
-    <td style="font-weight:600">${w.p}</td>
-    <td>${posBdg(w.pos)}</td>
-    <td>${mgrDot(w.m)}${w.m}</td>
-    <td><span class="bdg ${good?'bdg-pos':'bdg-neg'}">${good?'+':''}${w.vor}</span></td>
-  </tr>`;
 
   // Use new post-transaction VOR data
   const pickupData = A.bestPickups || [];
